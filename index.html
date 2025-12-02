@@ -39,6 +39,14 @@
                     </button>
                 </div>
                 <div class="menu-section">
+                    <button id="undoBtn" class="menu-btn" title="Undo (Ctrl+Z)" disabled>
+                        <span class="material-symbols-outlined">undo</span> Undo
+                    </button>
+                    <button id="redoBtn" class="menu-btn" title="Redo (Ctrl+Y)" disabled>
+                        <span class="material-symbols-outlined">redo</span> Redo
+                    </button>
+                </div>
+                <div class="menu-section">
                     <button id="exportFileBtn" class="menu-btn" title="Export">
                         <span class="material-symbols-outlined">download</span> Export
                     </button>
@@ -193,6 +201,7 @@
     <script src="js/tabManager.js"></script>
     <script src="js/autosave.js"></script>
     <script src="js/viewport.js"></script>
+    <script src="js/history.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

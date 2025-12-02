@@ -30,6 +30,9 @@ const App = (function() {
         TabManager.init();
         Autosave.init();
         Viewport.init();
+        History.init({
+            onHistoryChange: updateHistoryUI
+        });
 
         // Setup UI
         setupToolbox();
@@ -55,6 +58,13 @@ const App = (function() {
         if (TabManager) {
             TabManager.markCurrentTabDirty();
         }
+
+        // Save state to history (debounced to avoid saving on every pixel)
+        clearTimeout(window.historyDebounceTimer);
+        window.historyDebounceTimer = setTimeout(() => {
+            const currentState = PixelCanvas.exportToString();
+            History.pushState(currentState, 'Paint');
+        }, 500); // Wait 500ms after last change
     }
 
     /**
@@ -101,6 +111,8 @@ const App = (function() {
         document.getElementById('newBtn').addEventListener('click', handleNew);
         document.getElementById('saveBtn').addEventListener('click', handleSave);
         document.getElementById('loadBtn').addEventListener('click', handleLoad);
+        document.getElementById('undoBtn').addEventListener('click', handleUndo);
+        document.getElementById('redoBtn').addEventListener('click', handleRedo);
         document.getElementById('exportFileBtn').addEventListener('click', handleExportFile);
         document.getElementById('importStringBtn').addEventListener('click', handleImportString);
         document.getElementById('clearBtn').addEventListener('click', handleClear);
@@ -232,9 +244,24 @@ const App = (function() {
                 return;
             }
 
-            // File shortcuts
+            // Keyboard shortcuts with Ctrl/Cmd
             if (e.ctrlKey || e.metaKey) {
                 switch (key) {
+                    case 'z':
+                        e.preventDefault();
+                        if (e.shiftKey) {
+                            // Ctrl+Shift+Z = Redo
+                            handleRedo();
+                        } else {
+                            // Ctrl+Z = Undo
+                            handleUndo();
+                        }
+                        break;
+                    case 'y':
+                        // Ctrl+Y = Redo (alternative)
+                        e.preventDefault();
+                        handleRedo();
+                        break;
                     case 'n':
                         e.preventDefault();
                         handleNew();
@@ -376,6 +403,68 @@ const App = (function() {
             if (Autosave) {
                 Autosave.forceSave();
             }
+        }
+    }
+
+    /**
+     * Handle Undo
+     */
+    function handleUndo() {
+        if (!History.canUndo()) {
+            console.log('Nothing to undo');
+            return;
+        }
+
+        const currentState = PixelCanvas.exportToString();
+        const previousState = History.undo(currentState);
+
+        if (previousState) {
+            PixelCanvas.importFromString(previousState);
+            updateCanvasSizeInputs();
+            updateLiveExportPreview();
+            console.log('Undo performed');
+        }
+    }
+
+    /**
+     * Handle Redo
+     */
+    function handleRedo() {
+        if (!History.canRedo()) {
+            console.log('Nothing to redo');
+            return;
+        }
+
+        const currentState = PixelCanvas.exportToString();
+        const nextState = History.redo(currentState);
+
+        if (nextState) {
+            PixelCanvas.importFromString(nextState);
+            updateCanvasSizeInputs();
+            updateLiveExportPreview();
+            console.log('Redo performed');
+        }
+    }
+
+    /**
+     * Update history UI (enable/disable buttons)
+     */
+    function updateHistoryUI(state) {
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+
+        if (undoBtn) {
+            undoBtn.disabled = !state.canUndo;
+            undoBtn.title = state.canUndo
+                ? `Undo (Ctrl+Z) - ${state.undoCount} states available`
+                : 'Undo (Ctrl+Z)';
+        }
+
+        if (redoBtn) {
+            redoBtn.disabled = !state.canRedo;
+            redoBtn.title = state.canRedo
+                ? `Redo (Ctrl+Y) - ${state.redoCount} states available`
+                : 'Redo (Ctrl+Y)';
         }
     }
 
