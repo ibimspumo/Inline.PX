@@ -136,6 +136,7 @@ const Tools = (function() {
     let startX = 0;
     let startY = 0;
     let previewData = null; // For shape preview
+    let selectionActive = false; // For selection tool
 
     /**
      * Initialize tools system
@@ -226,6 +227,11 @@ const Tools = (function() {
         if ([TOOL_TYPES.LINE, TOOL_TYPES.RECTANGLE, TOOL_TYPES.ELLIPSE].includes(currentTool)) {
             previewData = pixelData.map(row => [...row]);
         }
+
+        // Start selection for select tool
+        if (currentTool === TOOL_TYPES.SELECT) {
+            selectionActive = true;
+        }
     }
 
     /**
@@ -271,6 +277,7 @@ const Tools = (function() {
         if (!isDrawing) return false;
 
         isDrawing = false;
+        selectionActive = false;
         let modified = false;
 
         switch (currentTool) {
@@ -289,10 +296,30 @@ const Tools = (function() {
             case TOOL_TYPES.ELLIPSE:
                 modified = drawEllipse(startX, startY, x, y, pixelData, colorCode);
                 break;
+
+            case TOOL_TYPES.SELECT:
+                // Selection doesn't modify data
+                console.log('Selection created:', startX, startY, 'to', x, y);
+                break;
         }
 
         previewData = null;
         return modified;
+    }
+
+    /**
+     * Get selection data for visualization
+     * @returns {Object|null} Selection data
+     */
+    function getSelectionData() {
+        if (currentTool === TOOL_TYPES.SELECT && selectionActive) {
+            return {
+                active: true,
+                startX: startX,
+                startY: startY
+            };
+        }
+        return null;
     }
 
     /**
@@ -587,6 +614,7 @@ const Tools = (function() {
         getShapeMode,
         startDrawing,
         continueDrawing,
-        endDrawing
+        endDrawing,
+        getSelectionData
     };
 })();

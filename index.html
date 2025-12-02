@@ -3,138 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>PixelCreator - Compact Pixel Art Editor</title>
+    <title>PixelCreator Pro - Professional Pixel Art Editor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-wrapper">
-        <!-- Left Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1 class="app-title">PixelCreator</h1>
-                <p class="app-version">v1.0</p>
+    <div class="app-container">
+        <!-- Left Toolbox -->
+        <aside class="toolbox">
+            <div class="toolbox-header">
+                <h2>Tools</h2>
             </div>
-
-            <!-- File Operations -->
-            <div class="sidebar-section">
-                <h3 class="section-title">File</h3>
-                <button id="newBtn" class="sidebar-btn" title="New Image">
-                    <span class="btn-icon">📄</span>
-                    <span>New</span>
-                </button>
-                <button id="saveBtn" class="sidebar-btn" title="Save">
-                    <span class="btn-icon">💾</span>
-                    <span>Save</span>
-                </button>
-                <button id="loadBtn" class="sidebar-btn" title="Load">
-                    <span class="btn-icon">📂</span>
-                    <span>Load</span>
-                </button>
-            </div>
-
-            <!-- Import/Export -->
-            <div class="sidebar-section">
-                <h3 class="section-title">Import/Export</h3>
-                <button id="exportFileBtn" class="sidebar-btn" title="Export as File">
-                    <span class="btn-icon">⬇️</span>
-                    <span>Export File</span>
-                </button>
-                <button id="importStringBtn" class="sidebar-btn" title="Import from Text">
-                    <span class="btn-icon">⬆️</span>
-                    <span>Import Text</span>
-                </button>
-            </div>
-
-            <!-- Canvas Size -->
-            <div class="sidebar-section">
-                <h3 class="section-title">Canvas Size</h3>
-                <div class="size-editor">
-                    <div class="size-presets">
-                        <button class="size-preset" data-size="8">8×8</button>
-                        <button class="size-preset" data-size="16">16×16</button>
-                        <button class="size-preset" data-size="32">32×32</button>
-                        <button class="size-preset" data-size="64">64×64</button>
-                    </div>
-                    <div class="size-custom">
-                        <div class="size-input-group">
-                            <label>W</label>
-                            <input type="number" id="canvasWidth" min="2" max="64" value="8">
-                        </div>
-                        <span class="size-separator">×</span>
-                        <div class="size-input-group">
-                            <label>H</label>
-                            <input type="number" id="canvasHeight" min="2" max="64" value="8">
-                        </div>
-                    </div>
-                    <button id="resizeBtn" class="sidebar-btn btn-block">Apply Size</button>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="sidebar-section">
-                <h3 class="section-title">Actions</h3>
-                <button id="clearBtn" class="sidebar-btn btn-danger" title="Clear Canvas">
-                    <span class="btn-icon">🗑️</span>
-                    <span>Clear Canvas</span>
-                </button>
+            <div class="toolbox-content" id="toolbox">
+                <!-- Tools generated dynamically -->
             </div>
         </aside>
 
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <!-- Top Bar -->
-            <div class="top-bar">
-                <div class="canvas-info">
-                    <div class="info-badge">
-                        <span class="info-label">Size:</span>
-                        <span id="canvasSizeDisplay" class="info-value">8×8</span>
-                    </div>
-                    <div class="info-badge">
-                        <span class="info-label">Pixels:</span>
-                        <span id="characterCount" class="info-value">64</span>
-                    </div>
-                    <div class="info-badge">
-                        <span class="info-label">Color:</span>
-                        <span id="currentColorDisplay" class="color-preview-small"></span>
-                        <span id="currentColorCode" class="info-value">1</span>
-                    </div>
+        <!-- Center Canvas Area -->
+        <main class="workspace">
+            <!-- Top Menu Bar -->
+            <div class="menu-bar">
+                <div class="menu-section">
+                    <button id="newBtn" class="menu-btn" title="New (Ctrl+N)">
+                        <span>📄</span> New
+                    </button>
+                    <button id="saveBtn" class="menu-btn" title="Save (Ctrl+S)">
+                        <span>💾</span> Save
+                    </button>
+                    <button id="loadBtn" class="menu-btn" title="Load (Ctrl+O)">
+                        <span>📂</span> Load
+                    </button>
+                </div>
+                <div class="menu-section">
+                    <button id="exportFileBtn" class="menu-btn" title="Export">
+                        <span>⬇️</span> Export
+                    </button>
+                    <button id="importStringBtn" class="menu-btn" title="Import">
+                        <span>⬆️</span> Import
+                    </button>
+                </div>
+                <div class="menu-section">
+                    <button id="clearBtn" class="menu-btn menu-btn-danger" title="Clear">
+                        <span>🗑️</span> Clear
+                    </button>
                 </div>
             </div>
 
-            <!-- Color Palette -->
-            <div class="palette-container">
-                <h3 class="section-title">Color Palette</h3>
-                <div class="color-palette" id="colorPalette">
-                    <!-- Generated dynamically -->
+            <!-- Canvas Info Bar with Tool Options -->
+            <div class="info-bar">
+                <div class="info-group">
+                    <span class="info-label">Tool:</span>
+                    <span id="currentToolName" class="info-value">Brush</span>
+                </div>
+
+                <!-- Tool Options (shown dynamically) -->
+                <div class="info-group" id="brushSizeOption" style="display: none;">
+                    <span class="info-label">Size:</span>
+                    <div class="tool-size-buttons">
+                        <button class="tool-size-btn active" data-size="1">1</button>
+                        <button class="tool-size-btn" data-size="2">2</button>
+                        <button class="tool-size-btn" data-size="3">3</button>
+                        <button class="tool-size-btn" data-size="5">5</button>
+                    </div>
+                </div>
+
+                <div class="info-group" id="shapeModeOption" style="display: none;">
+                    <span class="info-label">Mode:</span>
+                    <div class="tool-mode-buttons">
+                        <button class="tool-mode-btn active" data-mode="fill">Fill</button>
+                        <button class="tool-mode-btn" data-mode="stroke">Stroke</button>
+                    </div>
+                </div>
+
+                <div class="info-spacer"></div>
+
+                <div class="info-group">
+                    <span class="info-label">Size:</span>
+                    <span id="canvasSizeDisplay" class="info-value">16×16</span>
+                </div>
+                <div class="info-group">
+                    <span class="info-label">Color:</span>
+                    <div id="currentColorDisplay" class="color-indicator"></div>
+                    <span id="currentColorCode" class="info-value">1</span>
                 </div>
             </div>
 
-            <!-- Canvas Area -->
-            <div class="canvas-area">
+            <!-- Canvas Container -->
+            <div class="canvas-container">
                 <div class="canvas-wrapper">
                     <canvas id="pixelCanvas"></canvas>
                 </div>
             </div>
 
             <!-- Live Export Preview -->
-            <div class="export-preview">
-                <div class="export-preview-header">
-                    <h3 class="section-title">Live Export String</h3>
-                    <button id="copyLiveStringBtn" class="btn-icon-only" title="Copy to Clipboard">📋</button>
+            <div class="export-panel">
+                <div class="export-panel-header">
+                    <h3>Export String</h3>
+                    <button id="copyLiveStringBtn" class="icon-btn" title="Copy">📋</button>
                 </div>
-                <div class="export-string-container">
-                    <code id="liveExportString" class="export-string">8x8:0000000000000000000000000000000000000000000000000000000000000000</code>
+                <div class="export-content">
+                    <code id="liveExportString" class="export-code">16x16:0000...</code>
                 </div>
-                <div class="export-stats">
-                    <span class="stat-item">
-                        <strong>Format:</strong> <span id="formatInfo">Width×Height:PixelData</span>
-                    </span>
-                    <span class="stat-item">
-                        <strong>Length:</strong> <span id="stringLength">68</span> chars
-                    </span>
+                <div class="export-info">
+                    <span><strong>Format:</strong> Base64 (64 colors)</span>
+                    <span><strong>Length:</strong> <span id="stringLength">0</span> chars</span>
                 </div>
             </div>
         </main>
+
+        <!-- Right Properties Panel -->
+        <aside class="properties-panel">
+            <!-- Canvas Size -->
+            <div class="panel-section">
+                <h3 class="panel-title">Canvas Size</h3>
+                <div class="size-presets">
+                    <button class="preset-btn" data-size="8">8×8</button>
+                    <button class="preset-btn active" data-size="16">16×16</button>
+                    <button class="preset-btn" data-size="32">32×32</button>
+                    <button class="preset-btn" data-size="64">64×64</button>
+                </div>
+                <div class="custom-size">
+                    <div class="size-input-row">
+                        <input type="number" id="canvasWidth" min="2" max="128" value="16" placeholder="W">
+                        <span>×</span>
+                        <input type="number" id="canvasHeight" min="2" max="128" value="16" placeholder="H">
+                    </div>
+                    <button id="resizeBtn" class="btn-primary">Apply</button>
+                </div>
+            </div>
+
+            <!-- Color Palette -->
+            <div class="panel-section">
+                <h3 class="panel-title">Color Palette</h3>
+                <div id="colorPalette" class="color-grid">
+                    <!-- Generated dynamically -->
+                </div>
+            </div>
+        </aside>
     </div>
 
     <!-- Import Modal -->
@@ -145,11 +149,12 @@
                 <button id="closeImportModal" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
-                <textarea id="importTextarea" rows="6" placeholder="Paste your pixel art string here (e.g., 8x8:000011112222...)"></textarea>
+                <p>Paste your Base64 pixel art string (format: WxH:DATA)</p>
+                <textarea id="importTextarea" rows="8" placeholder="16x16:123ABC..."></textarea>
             </div>
             <div class="modal-footer">
-                <button id="cancelImportBtn" class="btn btn-secondary">Cancel</button>
-                <button id="confirmImportBtn" class="btn btn-success">Import</button>
+                <button id="cancelImportBtn" class="btn-secondary">Cancel</button>
+                <button id="confirmImportBtn" class="btn-primary">Import</button>
             </div>
         </div>
     </div>
@@ -171,9 +176,14 @@
     </div>
 
     <!-- JavaScript Modules -->
+    <script src="js/dialogs.js"></script>
     <script src="js/colorPalette.js"></script>
+    <script src="js/tools.js"></script>
     <script src="js/canvas.js"></script>
     <script src="js/fileManager.js"></script>
+    <script src="js/tabManager.js"></script>
+    <script src="js/autosave.js"></script>
+    <script src="js/viewport.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

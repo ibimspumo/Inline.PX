@@ -1,0 +1,126 @@
+/**
+ * Responsive Design - Mobile & Tablet
+ */
+
+@media (max-width: 1024px) {
+    :root {
+        --toolbox-width: 70px;
+        --properties-width: 240px;
+    }
+
+    .color-grid {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .app-container {
+        flex-direction: column;
+    }
+
+    .toolbox {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .toolbox-content {
+        display: flex;
+        overflow-x: auto;
+        padding: var(--spacing-sm);
+    }
+
+    .tool-btn {
+        min-width: 60px;
+        flex-shrink: 0;
+    }
+
+    .properties-panel {
+        width: 100%;
+        max-height: 40vh;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .menu-bar {
+        flex-wrap: wrap;
+        height: auto;
+        min-height: var(--menu-bar-height);
+    }
+
+    .menu-section::after {
+        display: none;
+    }
+
+    .info-bar {
+        flex-wrap: wrap;
+        height: auto;
+        min-height: var(--info-bar-height);
+        gap: var(--spacing-md);
+    }
+
+    .canvas-container {
+        padding: var(--spacing-md);
+    }
+
+    .export-panel {
+        padding: var(--spacing-sm);
+    }
+
+    .color-grid {
+        grid-template-columns: repeat(8, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .menu-btn span {
+        display: none;
+    }
+
+    .menu-btn {
+        padding: var(--spacing-sm);
+    }
+
+    .info-bar {
+        font-size: var(--font-size-xs);
+    }
+
+    .info-value-small {
+        display: none;
+    }
+
+    .size-presets {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .color-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 2px;
+    }
+
+    .export-content {
+        max-height: 60px;
+    }
+
+    .export-code {
+        font-size: 10px;
+    }
+}
+
+/* Touch Optimization */
+@media (hover: none) and (pointer: coarse) {
+    .menu-btn,
+    .tool-btn,
+    .size-btn,
+    .mode-btn,
+    .preset-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .color-swatch {
+        min-height: 32px;
+        min-width: 32px;
+    }
+}

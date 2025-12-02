@@ -1,15 +1,12 @@
 /**
  * App Module - Main Application Controller
- *
- * Coordinates all modules and handles user interactions.
- * This is the main entry point for the application.
+ * Coordinates all modules for PixelCreator Pro
  *
  * Features:
- * - Initialize all modules
- * - Handle toolbar actions
- * - Manage import/export dialogs
- * - Live export string preview
- * - Coordinate between modules
+ * - Tool system coordination
+ * - Keyboard shortcuts
+ * - UI state management
+ * - File operations
  */
 
 const App = (function() {
@@ -19,222 +16,429 @@ const App = (function() {
      * Initialize the application
      */
     function init() {
-        console.log('PixelCreator initializing...');
+        console.log('PixelCreator Pro initializing...');
 
-        // Initialize color palette
+        // Initialize dialog system first
+        Dialogs.init();
+
+        // Initialize core modules
+        Tools.init(onToolChange);
         ColorPalette.init('colorPalette', onColorChange);
+        PixelCanvas.init('pixelCanvas', 16, 16, onCanvasChange);
 
-        // Initialize canvas with live preview callback
-        PixelCanvas.init('pixelCanvas', 8, 8, updateLiveExportPreview);
+        // Initialize new modules
+        TabManager.init();
+        Autosave.init();
+        Viewport.init();
 
-        // Setup toolbar event listeners
-        setupToolbarEvents();
+        // Setup UI
+        setupToolbox();
+        setupMenuBar();
+        setupPropertiesPanel();
+        setupModals();
+        setupKeyboardShortcuts();
 
-        // Setup control events
-        setupControlEvents();
-
-        // Setup modal events
-        setupModalEvents();
-
-        // Initial live preview update
+        // Initial updates
         updateLiveExportPreview();
+        updateSizePresetHighlight();
 
-        console.log('PixelCreator ready!');
+        console.log('PixelCreator Pro ready!');
     }
 
     /**
-     * Setup toolbar button event listeners
+     * Handle canvas change (drawing, resizing, etc.)
      */
-    function setupToolbarEvents() {
-        // New button
+    function onCanvasChange() {
+        updateLiveExportPreview();
+
+        // Mark tab as dirty and trigger autosave
+        if (TabManager) {
+            TabManager.markCurrentTabDirty();
+        }
+    }
+
+    /**
+     * Setup toolbox with all tools
+     */
+    function setupToolbox() {
+        const toolbox = document.getElementById('toolbox');
+        if (!toolbox) return;
+
+        toolbox.innerHTML = '';
+
+        // Create tool buttons
+        Object.values(Tools.TOOL_TYPES).forEach(toolType => {
+            const info = Tools.getToolInfo(toolType);
+            if (!info) return;
+
+            const btn = document.createElement('button');
+            btn.className = 'tool-btn';
+            btn.dataset.tool = toolType;
+            btn.title = `${info.name} (${info.shortcut})`;
+
+            if (toolType === Tools.getCurrentTool()) {
+                btn.classList.add('active');
+            }
+
+            btn.innerHTML = `
+                <span class="tool-icon">${info.icon}</span>
+                <span class="tool-label">${info.name}</span>
+                <span class="tool-shortcut">${info.shortcut}</span>
+            `;
+
+            btn.addEventListener('click', () => {
+                Tools.setTool(toolType);
+            });
+
+            toolbox.appendChild(btn);
+        });
+    }
+
+    /**
+     * Setup menu bar events
+     */
+    function setupMenuBar() {
         document.getElementById('newBtn').addEventListener('click', handleNew);
-
-        // Save button
         document.getElementById('saveBtn').addEventListener('click', handleSave);
-
-        // Load button
         document.getElementById('loadBtn').addEventListener('click', handleLoad);
-
-        // Export file button
         document.getElementById('exportFileBtn').addEventListener('click', handleExportFile);
-
-        // Import string button
         document.getElementById('importStringBtn').addEventListener('click', handleImportString);
-
-        // Clear button
         document.getElementById('clearBtn').addEventListener('click', handleClear);
-
-        // Copy live string button
         document.getElementById('copyLiveStringBtn').addEventListener('click', handleCopyLiveString);
     }
 
     /**
-     * Setup control panel event listeners
+     * Setup properties panel
      */
-    function setupControlEvents() {
-        // Resize button
-        document.getElementById('resizeBtn').addEventListener('click', handleResize);
-
-        // Size presets
-        document.querySelectorAll('.size-preset').forEach(btn => {
+    function setupPropertiesPanel() {
+        // Brush size buttons (in info bar)
+        document.querySelectorAll('.tool-size-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const size = parseInt(btn.dataset.size);
-                handlePresetSize(size);
+                Tools.setBrushSize(size);
+
+                document.querySelectorAll('.tool-size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
             });
         });
 
-        // Allow Enter key on input fields to trigger resize
-        document.getElementById('canvasWidth').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleResize();
+        // Shape mode buttons (in info bar)
+        document.querySelectorAll('.tool-mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+                Tools.setShapeMode(mode);
+
+                document.querySelectorAll('.tool-mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
         });
 
-        document.getElementById('canvasHeight').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleResize();
+        // Canvas size presets
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const size = parseInt(btn.dataset.size);
+                document.getElementById('canvasWidth').value = size;
+                document.getElementById('canvasHeight').value = size;
+                handleResize();
+            });
         });
 
-        // Update input fields when typing
-        document.getElementById('canvasWidth').addEventListener('input', updateSizePresetHighlight);
-        document.getElementById('canvasHeight').addEventListener('input', updateSizePresetHighlight);
+        // Resize button
+        document.getElementById('resizeBtn').addEventListener('click', handleResize);
+
+        // Enter key on inputs
+        ['canvasWidth', 'canvasHeight'].forEach(id => {
+            document.getElementById(id).addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleResize();
+            });
+
+            document.getElementById(id).addEventListener('input', updateSizePresetHighlight);
+        });
     }
 
     /**
-     * Setup modal event listeners
+     * Setup modal dialogs
      */
-    function setupModalEvents() {
+    function setupModals() {
         // Import modal
         const importModal = document.getElementById('importModal');
-        const closeImportBtn = document.getElementById('closeImportModal');
-        const cancelImportBtn = document.getElementById('cancelImportBtn');
-        const confirmImportBtn = document.getElementById('confirmImportBtn');
-
-        closeImportBtn.addEventListener('click', () => {
+        document.getElementById('closeImportModal').addEventListener('click', () => {
             importModal.style.display = 'none';
         });
-
-        cancelImportBtn.addEventListener('click', () => {
+        document.getElementById('cancelImportBtn').addEventListener('click', () => {
             importModal.style.display = 'none';
         });
+        document.getElementById('confirmImportBtn').addEventListener('click', handleImportFromString);
 
-        confirmImportBtn.addEventListener('click', handleImportFromString);
-
-        // Close on outside click
         importModal.addEventListener('click', (e) => {
             if (e.target === importModal) {
                 importModal.style.display = 'none';
             }
         });
+
+        // File modal
+        const fileModal = document.getElementById('fileModal');
+        document.getElementById('closeModal').addEventListener('click', () => {
+            fileModal.style.display = 'none';
+        });
+
+        fileModal.addEventListener('click', (e) => {
+            if (e.target === fileModal) {
+                fileModal.style.display = 'none';
+            }
+        });
     }
 
     /**
-     * Handle color change event
-     * @param {number} code - Color code
-     * @param {string} color - Color hex value
+     * Setup keyboard shortcuts
      */
-    function onColorChange(code, color) {
-        // Update top bar display
-        const preview = document.getElementById('currentColorDisplay');
-        if (preview) {
-            preview.style.backgroundColor = color;
+    function setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ignore if typing in input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            // Tool shortcuts
+            const toolShortcuts = {
+                'b': Tools.TOOL_TYPES.BRUSH,
+                'p': Tools.TOOL_TYPES.PENCIL,
+                'e': Tools.TOOL_TYPES.ERASER,
+                'l': Tools.TOOL_TYPES.LINE,
+                'r': Tools.TOOL_TYPES.RECTANGLE,
+                'o': Tools.TOOL_TYPES.ELLIPSE,
+                'f': Tools.TOOL_TYPES.FILL,
+                'm': Tools.TOOL_TYPES.SELECT,
+                'w': Tools.TOOL_TYPES.MAGIC_WAND,
+                'v': Tools.TOOL_TYPES.MOVE,
+                'h': Tools.TOOL_TYPES.HAND
+            };
+
+            const key = e.key.toLowerCase();
+
+            if (toolShortcuts[key]) {
+                e.preventDefault();
+                Tools.setTool(toolShortcuts[key]);
+                return;
+            }
+
+            // File shortcuts
+            if (e.ctrlKey || e.metaKey) {
+                switch (key) {
+                    case 'n':
+                        e.preventDefault();
+                        handleNew();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        handleSave();
+                        break;
+                    case 'o':
+                        e.preventDefault();
+                        handleLoad();
+                        break;
+                }
+            }
+        });
+    }
+
+    /**
+     * Handle tool change
+     * @param {string} toolType - New tool type
+     * @param {Object} toolInfo - Tool info
+     */
+    function onToolChange(toolType, toolInfo) {
+        // Update tool buttons
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tool === toolType);
+        });
+
+        // Update current tool display
+        const toolName = document.getElementById('currentToolName');
+        if (toolName) {
+            toolName.textContent = toolInfo.name;
+        }
+
+        // Update canvas cursor
+        const canvasContainer = document.querySelector('.canvas-container');
+        if (canvasContainer) {
+            canvasContainer.style.cursor = toolInfo.cursor;
+        }
+
+        // Show/hide tool options
+        const brushSizeOption = document.getElementById('brushSizeOption');
+        const shapeModeOption = document.getElementById('shapeModeOption');
+
+        if (brushSizeOption) {
+            brushSizeOption.style.display = toolInfo.hasSizeOption ? 'flex' : 'none';
+        }
+
+        if (shapeModeOption) {
+            shapeModeOption.style.display = toolInfo.hasShapeOption ? 'flex' : 'none';
         }
     }
 
     /**
-     * Update live export string preview
+     * Handle color change
+     * @param {number} index - Color index
+     * @param {string} color - Color hex
+     */
+    function onColorChange(index, color) {
+        const colorDisplay = document.getElementById('currentColorDisplay');
+        if (colorDisplay) {
+            colorDisplay.style.backgroundColor = color;
+        }
+    }
+
+    /**
+     * Update live export preview
      */
     function updateLiveExportPreview() {
         const dataString = PixelCanvas.exportToString();
-        const liveExportElement = document.getElementById('liveExportString');
-        const stringLengthElement = document.getElementById('stringLength');
+        const liveExport = document.getElementById('liveExportString');
+        const stringLength = document.getElementById('stringLength');
 
-        if (liveExportElement) {
-            liveExportElement.textContent = dataString;
+        if (liveExport) {
+            liveExport.textContent = dataString;
         }
 
-        if (stringLengthElement) {
-            stringLengthElement.textContent = dataString.length;
+        if (stringLength) {
+            stringLength.textContent = dataString.length;
         }
     }
 
     /**
-     * Handle preset size button click
-     * @param {number} size - Preset size (8, 16, 32, 64)
-     */
-    function handlePresetSize(size) {
-        document.getElementById('canvasWidth').value = size;
-        document.getElementById('canvasHeight').value = size;
-        handleResize();
-    }
-
-    /**
-     * Update size preset button highlighting
+     * Update size preset highlighting
      */
     function updateSizePresetHighlight() {
         const width = parseInt(document.getElementById('canvasWidth').value);
         const height = parseInt(document.getElementById('canvasHeight').value);
 
-        document.querySelectorAll('.size-preset').forEach(btn => {
+        document.querySelectorAll('.preset-btn').forEach(btn => {
             const size = parseInt(btn.dataset.size);
-            if (width === size && height === size) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
+            btn.classList.toggle('active', width === size && height === size);
         });
     }
 
     /**
-     * Handle New button click
+     * Handle New
      */
     function handleNew() {
-        if (confirm('Create a new pixel art? Unsaved changes will be lost.')) {
-            PixelCanvas.clear();
-            FileManager.clearCurrentFileName();
-            updateLiveExportPreview();
-            console.log('New canvas created');
+        // Create new tab instead of clearing current
+        if (TabManager) {
+            TabManager.createNewTab();
+        } else {
+            // Fallback to old behavior
+            if (confirm('Create a new pixel art? Unsaved changes will be lost.')) {
+                PixelCanvas.clear();
+                FileManager.clearCurrentFileName();
+                updateLiveExportPreview();
+            }
         }
     }
 
     /**
-     * Handle Save button click
+     * Handle Save
      */
-    function handleSave() {
+    async function handleSave() {
         const dataString = PixelCanvas.exportToString();
-        const currentName = FileManager.getCurrentFileName();
 
-        if (FileManager.save(dataString, currentName)) {
+        // Get name from TabManager if available
+        let currentName = FileManager.getCurrentFileName();
+        if (TabManager) {
+            const tab = TabManager.getCurrentTab();
+            if (tab) {
+                currentName = tab.name;
+            }
+        }
+
+        const success = await FileManager.save(dataString, currentName);
+
+        if (success) {
             console.log('Saved successfully');
+
+            // Mark tab as clean
+            if (TabManager) {
+                TabManager.markCurrentTabClean();
+            }
+
+            // Force autosave update
+            if (Autosave) {
+                Autosave.forceSave();
+            }
         }
     }
 
     /**
-     * Handle Load button click
+     * Handle Load
      */
     function handleLoad() {
         FileManager.showLoadDialog((file) => {
-            console.log('Loading file:', file.name);
-
             if (PixelCanvas.importFromString(file.data)) {
                 FileManager.setCurrentFileName(file.name);
+
+                // Update tab name
+                if (TabManager) {
+                    TabManager.setCurrentTabName(file.name);
+                    TabManager.markCurrentTabClean();
+                }
+
                 updateCanvasSizeInputs();
                 updateLiveExportPreview();
-                console.log('Loaded successfully');
             }
         });
     }
 
     /**
-     * Handle Export File button click
+     * Handle Export File
      */
-    function handleExportFile() {
+    async function handleExportFile() {
         const dataString = PixelCanvas.exportToString();
         const filename = FileManager.getCurrentFileName() || 'pixelart';
 
-        FileManager.exportAsFile(dataString, filename);
-        console.log('Exported as file');
+        // Show export dialog with copy and download options
+        const choice = await Dialogs.exportDialog(dataString);
+
+        if (choice === 'copy') {
+            // Copy to clipboard
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(dataString).then(() => {
+                    Dialogs.alert('Copied!', 'Pixel art string copied to clipboard.', 'success');
+                }).catch(() => {
+                    fallbackCopyString(dataString);
+                });
+            } else {
+                fallbackCopyString(dataString);
+            }
+        } else if (choice === 'download') {
+            // Download as file
+            FileManager.exportAsFile(dataString, filename);
+        }
     }
 
     /**
-     * Handle Import String button click
+     * Fallback copy method
+     */
+    function fallbackCopyString(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+
+        try {
+            document.execCommand('copy');
+            Dialogs.alert('Copied!', 'Pixel art string copied to clipboard.', 'success');
+        } catch (err) {
+            Dialogs.alert('Copy Failed', 'Failed to copy to clipboard. Please copy manually.', 'error');
+        }
+
+        document.body.removeChild(textarea);
+    }
+
+    /**
+     * Handle Import String
      */
     function handleImportString() {
         const modal = document.getElementById('importModal');
@@ -246,14 +450,14 @@ const App = (function() {
     }
 
     /**
-     * Handle Import from String button click (in modal)
+     * Handle Import from String
      */
-    function handleImportFromString() {
+    async function handleImportFromString() {
         const textarea = document.getElementById('importTextarea');
         const dataString = textarea.value.trim();
 
         if (!dataString) {
-            alert('Please paste a pixel art string first');
+            await Dialogs.alert('Missing Data', 'Please paste a pixel art string first.', 'warning');
             return;
         }
 
@@ -262,33 +466,30 @@ const App = (function() {
             updateCanvasSizeInputs();
             updateLiveExportPreview();
             FileManager.clearCurrentFileName();
-            console.log('Imported successfully');
         }
     }
 
     /**
-     * Handle Copy Live String button click
+     * Handle Copy Live String
      */
     function handleCopyLiveString() {
         const dataString = PixelCanvas.exportToString();
 
-        // Modern clipboard API
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(dataString).then(() => {
                 showCopyFeedback();
             }).catch(() => {
-                fallbackCopyToClipboard(dataString);
+                fallbackCopy(dataString);
             });
         } else {
-            fallbackCopyToClipboard(dataString);
+            fallbackCopy(dataString);
         }
     }
 
     /**
-     * Fallback copy method for older browsers
-     * @param {string} text - Text to copy
+     * Fallback copy method
      */
-    function fallbackCopyToClipboard(text) {
+    function fallbackCopy(text) {
         const textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
@@ -300,80 +501,98 @@ const App = (function() {
             document.execCommand('copy');
             showCopyFeedback();
         } catch (err) {
-            alert('Failed to copy. Please copy manually.');
+            alert('Failed to copy');
         }
 
         document.body.removeChild(textarea);
     }
 
     /**
-     * Show visual feedback when copying
+     * Show copy feedback
      */
     function showCopyFeedback() {
         const btn = document.getElementById('copyLiveStringBtn');
         const originalText = btn.textContent;
 
         btn.textContent = '✓';
-        btn.style.backgroundColor = 'var(--success-color)';
+        btn.style.background = 'var(--success-color)';
 
         setTimeout(() => {
             btn.textContent = originalText;
-            btn.style.backgroundColor = '';
+            btn.style.background = '';
         }, 1000);
     }
 
     /**
-     * Handle Clear button click
+     * Handle Clear
      */
-    function handleClear() {
-        if (confirm('Clear the canvas? This cannot be undone.')) {
+    async function handleClear() {
+        const confirmed = await Dialogs.confirm(
+            'Clear Canvas',
+            'Are you sure you want to clear the canvas? This cannot be undone.',
+            {
+                confirmText: 'Clear',
+                cancelText: 'Cancel',
+                type: 'warning',
+                dangerous: true
+            }
+        );
+
+        if (confirmed) {
             PixelCanvas.clear();
             updateLiveExportPreview();
-            console.log('Canvas cleared');
         }
     }
 
     /**
-     * Handle Resize button click
+     * Handle Resize
      */
-    function handleResize() {
-        const widthInput = document.getElementById('canvasWidth');
-        const heightInput = document.getElementById('canvasHeight');
+    async function handleResize() {
+        const width = parseInt(document.getElementById('canvasWidth').value);
+        const height = parseInt(document.getElementById('canvasHeight').value);
 
-        const newWidth = parseInt(widthInput.value);
-        const newHeight = parseInt(heightInput.value);
-
-        // Validate
-        if (isNaN(newWidth) || isNaN(newHeight)) {
-            alert('Please enter valid numbers for width and height');
+        if (isNaN(width) || isNaN(height)) {
+            await Dialogs.alert('Invalid Input', 'Please enter valid numbers for width and height.', 'warning');
             return;
         }
 
-        if (newWidth < 2 || newWidth > 64 || newHeight < 2 || newHeight > 64) {
-            alert('Width and height must be between 2 and 64');
+        if (width < 2 || width > 128 || height < 2 || height > 128) {
+            await Dialogs.alert('Invalid Size', 'Canvas size must be between 2×2 and 128×128 pixels.', 'warning');
             return;
         }
 
-        // Confirm if canvas has content
         const dataString = PixelCanvas.exportToString();
         const hasContent = !dataString.split(':')[1].split('').every(c => c === '0');
 
         if (hasContent) {
-            if (!confirm('Resizing may crop or add space to your artwork. Continue?')) {
+            const confirmed = await Dialogs.confirm(
+                'Resize Canvas',
+                'Resizing may crop or add empty space to your artwork. Continue?',
+                {
+                    confirmText: 'Resize',
+                    cancelText: 'Cancel',
+                    type: 'warning'
+                }
+            );
+
+            if (!confirmed) {
                 return;
             }
         }
 
-        // Resize
-        if (PixelCanvas.resize(newWidth, newHeight)) {
+        if (PixelCanvas.resize(width, height)) {
             updateLiveExportPreview();
             updateSizePresetHighlight();
-            console.log(`Canvas resized to ${newWidth}x${newHeight}`);
+
+            // Update viewport if canvas size changed
+            if (Viewport) {
+                Viewport.updateCanvasSize();
+            }
         }
     }
 
     /**
-     * Update canvas size input fields based on current canvas dimensions
+     * Update canvas size inputs
      */
     function updateCanvasSizeInputs() {
         const dimensions = PixelCanvas.getDimensions();
@@ -383,7 +602,7 @@ const App = (function() {
     }
 
     /**
-     * Handle window resize for responsive canvas
+     * Handle window resize
      */
     function handleWindowResize() {
         let resizeTimeout;

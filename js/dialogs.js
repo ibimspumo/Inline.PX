@@ -1,0 +1,374 @@
+/**
+ * Custom Dialog System - Beautiful modal dialogs
+ *
+ * Replaces browser alerts, confirms, and prompts with custom styled dialogs
+ * Provides consistent UX across the application
+ */
+
+const Dialogs = (function() {
+    'use strict';
+
+    let dialogContainer = null;
+    let currentDialog = null;
+
+    /**
+     * Initialize dialog system
+     */
+    function init() {
+        createDialogContainer();
+        console.log('Dialog system initialized');
+    }
+
+    /**
+     * Create dialog container
+     */
+    function createDialogContainer() {
+        dialogContainer = document.createElement('div');
+        dialogContainer.id = 'dialogContainer';
+        dialogContainer.className = 'dialog-overlay';
+        dialogContainer.style.display = 'none';
+        document.body.appendChild(dialogContainer);
+
+        // Close on overlay click
+        dialogContainer.addEventListener('click', (e) => {
+            if (e.target === dialogContainer) {
+                closeDialog();
+            }
+        });
+
+        // Close on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentDialog) {
+                closeDialog();
+            }
+        });
+    }
+
+    /**
+     * Show alert dialog
+     * @param {string} title - Dialog title
+     * @param {string} message - Dialog message
+     * @param {string} type - Dialog type: 'info', 'success', 'warning', 'error'
+     * @returns {Promise} Resolves when user clicks OK
+     */
+    function alert(title, message, type = 'info') {
+        return new Promise((resolve) => {
+            const iconMap = {
+                info: 'ℹ️',
+                success: '✓',
+                warning: '⚠️',
+                error: '✕'
+            };
+
+            const dialog = createDialogElement({
+                title: title,
+                message: message,
+                icon: iconMap[type] || iconMap.info,
+                type: type,
+                buttons: [
+                    {
+                        text: 'OK',
+                        type: 'primary',
+                        action: () => {
+                            closeDialog();
+                            resolve(true);
+                        }
+                    }
+                ]
+            });
+
+            showDialog(dialog);
+        });
+    }
+
+    /**
+     * Show confirm dialog
+     * @param {string} title - Dialog title
+     * @param {string} message - Dialog message
+     * @param {Object} options - Button options
+     * @returns {Promise<boolean>} Resolves with true/false
+     */
+    function confirm(title, message, options = {}) {
+        return new Promise((resolve) => {
+            const confirmText = options.confirmText || 'Confirm';
+            const cancelText = options.cancelText || 'Cancel';
+            const type = options.type || 'warning';
+            const dangerous = options.dangerous || false;
+
+            const iconMap = {
+                info: 'ℹ️',
+                success: '✓',
+                warning: '⚠️',
+                error: '✕'
+            };
+
+            const dialog = createDialogElement({
+                title: title,
+                message: message,
+                icon: iconMap[type],
+                type: type,
+                buttons: [
+                    {
+                        text: cancelText,
+                        type: 'secondary',
+                        action: () => {
+                            closeDialog();
+                            resolve(false);
+                        }
+                    },
+                    {
+                        text: confirmText,
+                        type: dangerous ? 'danger' : 'primary',
+                        action: () => {
+                            closeDialog();
+                            resolve(true);
+                        }
+                    }
+                ]
+            });
+
+            showDialog(dialog);
+        });
+    }
+
+    /**
+     * Show prompt dialog
+     * @param {string} title - Dialog title
+     * @param {string} message - Dialog message
+     * @param {string} defaultValue - Default input value
+     * @param {Object} options - Additional options
+     * @returns {Promise<string|null>} Resolves with input value or null
+     */
+    function prompt(title, message, defaultValue = '', options = {}) {
+        return new Promise((resolve) => {
+            const placeholder = options.placeholder || '';
+            const inputType = options.inputType || 'text';
+
+            const dialog = createDialogElement({
+                title: title,
+                message: message,
+                icon: '✏️',
+                type: 'info',
+                input: {
+                    type: inputType,
+                    value: defaultValue,
+                    placeholder: placeholder
+                },
+                buttons: [
+                    {
+                        text: 'Cancel',
+                        type: 'secondary',
+                        action: () => {
+                            closeDialog();
+                            resolve(null);
+                        }
+                    },
+                    {
+                        text: 'OK',
+                        type: 'primary',
+                        action: () => {
+                            const input = dialog.querySelector('.dialog-input');
+                            const value = input ? input.value : null;
+                            closeDialog();
+                            resolve(value);
+                        }
+                    }
+                ]
+            });
+
+            showDialog(dialog);
+
+            // Auto-focus and select input
+            setTimeout(() => {
+                const input = dialog.querySelector('.dialog-input');
+                if (input) {
+                    input.focus();
+                    input.select();
+
+                    // Submit on Enter key
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            const value = input.value;
+                            closeDialog();
+                            resolve(value);
+                        }
+                    });
+                }
+            }, 100);
+        });
+    }
+
+    /**
+     * Show custom export dialog
+     * @param {string} dataString - Export data string
+     * @returns {Promise<string>} Resolves with 'copy' or 'download'
+     */
+    function exportDialog(dataString) {
+        return new Promise((resolve) => {
+            const dialog = createDialogElement({
+                title: 'Export Pixel Art',
+                message: 'Choose how you want to export your pixel art:',
+                icon: '⬇️',
+                type: 'info',
+                customContent: `
+                    <div class="export-preview">
+                        <code class="export-code-preview">${escapeHtml(dataString)}</code>
+                        <div class="export-info-small">
+                            <strong>Format:</strong> Base64 (64 colors) •
+                            <strong>Length:</strong> ${dataString.length} chars
+                        </div>
+                    </div>
+                `,
+                buttons: [
+                    {
+                        text: 'Cancel',
+                        type: 'secondary',
+                        action: () => {
+                            closeDialog();
+                            resolve(null);
+                        }
+                    },
+                    {
+                        text: '📋 Copy String',
+                        type: 'primary',
+                        action: () => {
+                            closeDialog();
+                            resolve('copy');
+                        }
+                    },
+                    {
+                        text: '💾 Download File',
+                        type: 'primary',
+                        action: () => {
+                            closeDialog();
+                            resolve('download');
+                        }
+                    }
+                ]
+            });
+
+            showDialog(dialog);
+        });
+    }
+
+    /**
+     * Create dialog element
+     * @param {Object} config - Dialog configuration
+     * @returns {HTMLElement} Dialog element
+     */
+    function createDialogElement(config) {
+        const dialog = document.createElement('div');
+        dialog.className = `dialog-content dialog-${config.type}`;
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'dialog-header';
+        header.innerHTML = `
+            <div class="dialog-icon">${config.icon}</div>
+            <h2 class="dialog-title">${escapeHtml(config.title)}</h2>
+        `;
+        dialog.appendChild(header);
+
+        // Body
+        const body = document.createElement('div');
+        body.className = 'dialog-body';
+
+        if (config.message) {
+            const messagePara = document.createElement('p');
+            messagePara.className = 'dialog-message';
+            messagePara.textContent = config.message;
+            body.appendChild(messagePara);
+        }
+
+        // Custom content
+        if (config.customContent) {
+            const customDiv = document.createElement('div');
+            customDiv.innerHTML = config.customContent;
+            body.appendChild(customDiv);
+        }
+
+        // Input field
+        if (config.input) {
+            const input = document.createElement('input');
+            input.type = config.input.type;
+            input.value = config.input.value;
+            input.placeholder = config.input.placeholder;
+            input.className = 'dialog-input';
+            body.appendChild(input);
+        }
+
+        dialog.appendChild(body);
+
+        // Footer with buttons
+        const footer = document.createElement('div');
+        footer.className = 'dialog-footer';
+
+        config.buttons.forEach(btnConfig => {
+            const btn = document.createElement('button');
+            btn.className = `dialog-btn dialog-btn-${btnConfig.type}`;
+            btn.textContent = btnConfig.text;
+            btn.addEventListener('click', btnConfig.action);
+            footer.appendChild(btn);
+        });
+
+        dialog.appendChild(footer);
+
+        return dialog;
+    }
+
+    /**
+     * Show dialog
+     * @param {HTMLElement} dialog - Dialog element
+     */
+    function showDialog(dialog) {
+        dialogContainer.innerHTML = '';
+        dialogContainer.appendChild(dialog);
+        dialogContainer.style.display = 'flex';
+        currentDialog = dialog;
+
+        // Animate in
+        setTimeout(() => {
+            dialog.classList.add('dialog-show');
+        }, 10);
+
+        // Focus first button
+        const firstButton = dialog.querySelector('.dialog-btn');
+        if (firstButton) {
+            firstButton.focus();
+        }
+    }
+
+    /**
+     * Close current dialog
+     */
+    function closeDialog() {
+        if (currentDialog) {
+            currentDialog.classList.remove('dialog-show');
+            setTimeout(() => {
+                dialogContainer.style.display = 'none';
+                dialogContainer.innerHTML = '';
+                currentDialog = null;
+            }, 200);
+        }
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} Escaped text
+     */
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Public API
+    return {
+        init,
+        alert,
+        confirm,
+        prompt,
+        exportDialog
+    };
+})();

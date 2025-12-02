@@ -1,0 +1,77 @@
+/**
+ * Zoom Controls Styles
+ */
+
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.zoom-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    line-height: 1;
+    padding: 0;
+}
+
+.zoom-btn:hover {
+    background: var(--elevated-bg);
+    border-color: var(--border-light);
+    color: var(--text-primary);
+}
+
+.zoom-btn:active {
+    background: var(--surface-bg);
+    transform: scale(0.95);
+}
+
+.zoom-select {
+    min-width: 80px;
+    padding: 4px 8px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.zoom-select:hover {
+    background: var(--elevated-bg);
+    border-color: var(--border-light);
+}
+
+.zoom-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* Canvas wrapper zoom styles */
+.canvas-wrapper {
+    transition: transform 0.2s ease-out;
+    will-change: transform;
+}
+
+/* Smooth scrolling for container when panning */
+.canvas-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.canvas-container.panning {
+    cursor: grabbing !important;
+}

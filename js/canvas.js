@@ -1,15 +1,15 @@
 /**
- * Canvas Module
+ * Canvas Module - Professional Drawing Canvas
  *
- * Handles the pixel art canvas drawing and interaction.
- * Manages the pixel grid, drawing operations, and canvas rendering.
+ * Handles the pixel art canvas with professional tool support.
+ * Integrates with Tools module for Photoshop-style drawing.
  *
  * Features:
- * - Click and drag drawing
- * - Touch support for mobile devices
+ * - Tool-based drawing system
+ * - Base64 color encoding
+ * - Touch support for mobile
  * - Pixel grid visualization
- * - Export to text string format (compact storage)
- * - Import from text string
+ * - Export/Import with Base64 format
  */
 
 const PixelCanvas = (function() {
@@ -17,21 +17,21 @@ const PixelCanvas = (function() {
 
     let canvas = null;
     let ctx = null;
-    let width = 8;
-    let height = 8;
+    let width = 16;
+    let height = 16;
     let pixelSize = 30;
-    let isDrawing = false;
-    let pixelData = []; // 2D array storing color codes
-    let onChangeCallback = null; // Callback for when canvas changes
+    let pixelData = []; // 2D array storing color indices (Base64)
+    let onChangeCallback = null;
+    let selectionOverlay = null; // Canvas overlay for selection visualization
 
     /**
      * Initialize the canvas
      * @param {string} canvasId - ID of the canvas element
      * @param {number} w - Canvas width in pixels
      * @param {number} h - Canvas height in pixels
-     * @param {Function} onChange - Callback when canvas changes (for live preview)
+     * @param {Function} onChange - Callback when canvas changes
      */
-    function init(canvasId, w = 8, h = 8, onChange = null) {
+    function init(canvasId, w = 16, h = 16, onChange = null) {
         onChangeCallback = onChange;
         canvas = document.getElementById(canvasId);
 
@@ -44,27 +44,53 @@ const PixelCanvas = (function() {
         width = w;
         height = h;
 
-        // Initialize pixel data (all transparent by default)
         initializePixelData();
-
-        // Calculate pixel size based on screen
         calculatePixelSize();
-
-        // Set canvas size
         updateCanvasSize();
-
-        // Setup event listeners
+        createSelectionOverlay();
         setupEventListeners();
-
-        // Initial render
         render();
-
-        // Update size display
         updateSizeDisplay();
     }
 
     /**
-     * Initialize pixel data array with transparent pixels
+     * Create selection overlay canvas
+     */
+    function createSelectionOverlay() {
+        // Remove old overlay if exists
+        if (selectionOverlay) {
+            selectionOverlay.remove();
+        }
+
+        // Create new overlay canvas
+        selectionOverlay = document.createElement('canvas');
+        selectionOverlay.style.position = 'absolute';
+        selectionOverlay.style.top = '0';
+        selectionOverlay.style.left = '0';
+        selectionOverlay.style.pointerEvents = 'none';
+        selectionOverlay.style.zIndex = '10';
+
+        // Insert after main canvas
+        canvas.parentElement.style.position = 'relative';
+        canvas.parentElement.appendChild(selectionOverlay);
+
+        updateSelectionOverlaySize();
+    }
+
+    /**
+     * Update selection overlay size
+     */
+    function updateSelectionOverlaySize() {
+        if (selectionOverlay) {
+            selectionOverlay.width = canvas.width;
+            selectionOverlay.height = canvas.height;
+            selectionOverlay.style.width = canvas.style.width;
+            selectionOverlay.style.height = canvas.style.height;
+        }
+    }
+
+    /**
+     * Initialize pixel data array
      */
     function initializePixelData() {
         pixelData = [];
@@ -77,17 +103,17 @@ const PixelCanvas = (function() {
     }
 
     /**
-     * Calculate optimal pixel size based on screen size
+     * Calculate optimal pixel size
      */
     function calculatePixelSize() {
         const container = canvas.parentElement;
-        const maxWidth = Math.min(container.clientWidth - 40, 600);
-        const maxHeight = Math.min(window.innerHeight * 0.5, 600);
+        const maxWidth = Math.min(container.clientWidth - 40, 800);
+        const maxHeight = Math.min(window.innerHeight * 0.5, 800);
 
         const pixelSizeW = Math.floor(maxWidth / width);
         const pixelSizeH = Math.floor(maxHeight / height);
 
-        pixelSize = Math.max(10, Math.min(pixelSizeW, pixelSizeH, 50));
+        pixelSize = Math.max(8, Math.min(pixelSizeW, pixelSizeH, 50));
     }
 
     /**
@@ -96,121 +122,154 @@ const PixelCanvas = (function() {
     function updateCanvasSize() {
         canvas.width = width * pixelSize;
         canvas.height = height * pixelSize;
-
-        // Disable image smoothing for crisp pixels
         ctx.imageSmoothingEnabled = false;
+        updateSelectionOverlaySize();
     }
 
     /**
-     * Setup mouse and touch event listeners
+     * Setup event listeners for drawing
      */
     function setupEventListeners() {
         // Mouse events
-        canvas.addEventListener('mousedown', handleDrawStart);
-        canvas.addEventListener('mousemove', handleDrawMove);
-        canvas.addEventListener('mouseup', handleDrawEnd);
-        canvas.addEventListener('mouseleave', handleDrawEnd);
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('mouseleave', handleMouseUp);
 
-        // Touch events for mobile
+        // Touch events
         canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
         canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-        canvas.addEventListener('touchend', handleDrawEnd);
-        canvas.addEventListener('touchcancel', handleDrawEnd);
+        canvas.addEventListener('touchend', handleMouseUp);
+        canvas.addEventListener('touchcancel', handleMouseUp);
+
+        // Prevent context menu
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
     /**
-     * Handle drawing start (mouse down)
-     * @param {MouseEvent} e - Mouse event
+     * Handle mouse down
      */
-    function handleDrawStart(e) {
-        isDrawing = true;
-        drawPixel(e);
-    }
+    function handleMouseDown(e) {
+        const coords = getCanvasCoordinates(e);
+        if (!coords) return;
 
-    /**
-     * Handle drawing move (mouse move while drawing)
-     * @param {MouseEvent} e - Mouse event
-     */
-    function handleDrawMove(e) {
-        if (isDrawing) {
-            drawPixel(e);
-        }
-    }
+        const colorCode = ColorPalette.getCurrentColorCode();
+        Tools.startDrawing(coords.x, coords.y, pixelData);
 
-    /**
-     * Handle drawing end
-     */
-    function handleDrawEnd() {
-        isDrawing = false;
-    }
-
-    /**
-     * Handle touch start
-     * @param {TouchEvent} e - Touch event
-     */
-    function handleTouchStart(e) {
-        e.preventDefault();
-        isDrawing = true;
-        const touch = e.touches[0];
-        const mouseEvent = new MouseEvent('mousedown', {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        drawPixel(mouseEvent);
-    }
-
-    /**
-     * Handle touch move
-     * @param {TouchEvent} e - Touch event
-     */
-    function handleTouchMove(e) {
-        e.preventDefault();
-        if (isDrawing) {
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            drawPixel(mouseEvent);
-        }
-    }
-
-    /**
-     * Draw a pixel at the mouse/touch position
-     * @param {MouseEvent} e - Mouse event
-     */
-    function drawPixel(e) {
-        const rect = canvas.getBoundingClientRect();
-        const x = Math.floor((e.clientX - rect.left) / pixelSize);
-        const y = Math.floor((e.clientY - rect.top) / pixelSize);
-
-        if (x >= 0 && x < width && y >= 0 && y < height) {
-            const colorCode = ColorPalette.getCurrentColorCode();
-            pixelData[y][x] = colorCode;
-            render();
-
-            // Trigger onChange callback for live preview
-            if (onChangeCallback) {
-                onChangeCallback();
+        // Immediate draw for brush/pencil/eraser
+        const tool = Tools.getCurrentTool();
+        if ([Tools.TOOL_TYPES.BRUSH, Tools.TOOL_TYPES.PENCIL, Tools.TOOL_TYPES.ERASER].includes(tool)) {
+            if (Tools.continueDrawing(coords.x, coords.y, pixelData, colorCode)) {
+                render();
+                triggerChange();
             }
         }
     }
 
     /**
-     * Render the entire canvas
+     * Handle mouse move
+     */
+    function handleMouseMove(e) {
+        const coords = getCanvasCoordinates(e);
+        if (!coords) return;
+
+        const colorCode = ColorPalette.getCurrentColorCode();
+        if (Tools.continueDrawing(coords.x, coords.y, pixelData, colorCode)) {
+            render();
+            triggerChange();
+        }
+
+        // Update selection visualization for select tool
+        if (Tools.getCurrentTool() === Tools.TOOL_TYPES.SELECT) {
+            renderSelectionPreview(coords.x, coords.y);
+        }
+    }
+
+    /**
+     * Handle mouse up
+     */
+    function handleMouseUp(e) {
+        const coords = getCanvasCoordinates(e);
+        const colorCode = ColorPalette.getCurrentColorCode();
+
+        let modified = false;
+        if (coords) {
+            modified = Tools.endDrawing(coords.x, coords.y, pixelData, colorCode);
+        } else {
+            modified = Tools.endDrawing(-1, -1, pixelData, colorCode);
+        }
+
+        if (modified) {
+            render();
+            triggerChange();
+        }
+    }
+
+    /**
+     * Handle touch start
+     */
+    function handleTouchStart(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousedown', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        handleMouseDown(mouseEvent);
+    }
+
+    /**
+     * Handle touch move
+     */
+    function handleTouchMove(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousemove', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        handleMouseMove(mouseEvent);
+    }
+
+    /**
+     * Get canvas coordinates from mouse event
+     * @param {MouseEvent} e - Mouse event
+     * @returns {Object|null} {x, y} coordinates or null
+     */
+    function getCanvasCoordinates(e) {
+        const canvasWrapper = canvas.parentElement;
+        const rect = canvas.getBoundingClientRect();
+
+        // Account for viewport zoom and pan
+        let zoom = 1.0;
+        if (Viewport) {
+            zoom = Viewport.getZoom();
+        }
+
+        // Calculate pixel coordinates accounting for zoom
+        const x = Math.floor((e.clientX - rect.left) / (pixelSize * zoom));
+        const y = Math.floor((e.clientY - rect.top) / (pixelSize * zoom));
+
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+            return { x, y };
+        }
+        return null;
+    }
+
+    /**
+     * Render the canvas
      */
     function render() {
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw each pixel
+        // Draw pixels
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                const colorCode = pixelData[y][x];
-                const color = ColorPalette.getColor(colorCode);
+                const colorIndex = pixelData[y][x];
+                const color = ColorPalette.getColor(colorIndex);
 
-                // Draw pixel background (checkerboard for transparent)
-                if (colorCode === 0) {
+                if (colorIndex === 0) {
                     drawCheckerboard(x, y);
                 } else {
                     ctx.fillStyle = color;
@@ -225,8 +284,6 @@ const PixelCanvas = (function() {
 
     /**
      * Draw checkerboard pattern for transparent pixels
-     * @param {number} x - X position
-     * @param {number} y - Y position
      */
     function drawCheckerboard(x, y) {
         const size = Math.max(2, Math.floor(pixelSize / 4));
@@ -234,7 +291,7 @@ const PixelCanvas = (function() {
         for (let dy = 0; dy < pixelSize; dy += size) {
             for (let dx = 0; dx < pixelSize; dx += size) {
                 const isEven = ((Math.floor(dx / size) + Math.floor(dy / size)) % 2) === 0;
-                ctx.fillStyle = isEven ? '#CCCCCC' : '#FFFFFF';
+                ctx.fillStyle = isEven ? '#2a2a2a' : '#1a1a1a';
                 ctx.fillRect(
                     x * pixelSize + dx,
                     y * pixelSize + dy,
@@ -249,7 +306,7 @@ const PixelCanvas = (function() {
      * Draw grid lines
      */
     function drawGrid() {
-        ctx.strokeStyle = '#444444';
+        ctx.strokeStyle = '#404040';
         ctx.lineWidth = 1;
 
         // Vertical lines
@@ -270,65 +327,62 @@ const PixelCanvas = (function() {
     }
 
     /**
-     * Clear the entire canvas (set all pixels to transparent)
+     * Clear canvas
      */
     function clear() {
         initializePixelData();
         render();
+        triggerChange();
     }
 
     /**
-     * Resize the canvas
-     * @param {number} newWidth - New width in pixels
-     * @param {number} newHeight - New height in pixels
+     * Resize canvas
+     * @param {number} newWidth - New width
+     * @param {number} newHeight - New height
+     * @returns {boolean} Success
      */
     function resize(newWidth, newHeight) {
-        // Validate dimensions
-        if (newWidth < 2 || newWidth > 64 || newHeight < 2 || newHeight > 64) {
-            console.error('Invalid canvas dimensions. Must be between 2 and 64.');
+        if (newWidth < 2 || newWidth > 128 || newHeight < 2 || newHeight > 128) {
+            console.error('Invalid dimensions');
             return false;
         }
 
-        // Save old data
         const oldData = pixelData;
         const oldWidth = width;
         const oldHeight = height;
 
-        // Update dimensions
         width = newWidth;
         height = newHeight;
 
-        // Initialize new pixel data
         initializePixelData();
 
-        // Copy old data (if it fits)
+        // Copy old data
         for (let y = 0; y < Math.min(oldHeight, height); y++) {
             for (let x = 0; x < Math.min(oldWidth, width); x++) {
                 pixelData[y][x] = oldData[y][x];
             }
         }
 
-        // Recalculate and update
         calculatePixelSize();
         updateCanvasSize();
         render();
         updateSizeDisplay();
+        triggerChange();
 
         return true;
     }
 
     /**
-     * Export canvas to compact text string format
-     * Format: "WIDTHxHEIGHT:PIXELDATA"
-     * Example: "8x8:0000000000111111000000000000000000000000000000000000000000000000"
-     * @returns {string} Compact text representation
+     * Export to Base64 string format
+     * Format: "WxH:BASE64DATA"
+     * @returns {string} Export string
      */
     function exportToString() {
         let dataString = '';
 
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                dataString += pixelData[y][x];
+                dataString += ColorPalette.getBase64Char(pixelData[y][x]);
             }
         }
 
@@ -336,16 +390,15 @@ const PixelCanvas = (function() {
     }
 
     /**
-     * Import canvas from text string
-     * @param {string} str - Text string in format "WIDTHxHEIGHT:PIXELDATA"
-     * @returns {boolean} Success status
+     * Import from Base64 string
+     * @param {string} str - Import string in format "WxH:BASE64DATA"
+     * @returns {boolean} Success
      */
     function importFromString(str) {
         try {
-            // Parse format: "WIDTHxHEIGHT:PIXELDATA"
             const parts = str.split(':');
             if (parts.length !== 2) {
-                throw new Error('Invalid format. Expected "WIDTHxHEIGHT:PIXELDATA"');
+                throw new Error('Invalid format. Expected "WxH:DATA"');
             }
 
             const dimensions = parts[0].split('x');
@@ -357,22 +410,24 @@ const PixelCanvas = (function() {
             const newHeight = parseInt(dimensions[1]);
             const dataString = parts[1];
 
-            // Validate
             if (isNaN(newWidth) || isNaN(newHeight)) {
                 throw new Error('Invalid width or height');
             }
 
-            if (newWidth < 2 || newWidth > 64 || newHeight < 2 || newHeight > 64) {
-                throw new Error('Width and height must be between 2 and 64');
+            if (newWidth < 2 || newWidth > 128 || newHeight < 2 || newHeight > 128) {
+                throw new Error('Width and height must be between 2 and 128');
             }
 
             if (dataString.length !== newWidth * newHeight) {
                 throw new Error(`Expected ${newWidth * newHeight} characters, got ${dataString.length}`);
             }
 
-            // Validate characters (only 0-9)
-            if (!/^[0-9]+$/.test(dataString)) {
-                throw new Error('Invalid characters in pixel data. Only 0-9 allowed');
+            // Validate Base64 characters
+            for (let i = 0; i < dataString.length; i++) {
+                const char = dataString[i];
+                if (ColorPalette.getIndexFromChar(char) === -1) {
+                    throw new Error(`Invalid character in data: ${char}`);
+                }
             }
 
             // Update dimensions
@@ -384,35 +439,39 @@ const PixelCanvas = (function() {
             let index = 0;
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
-                    pixelData[y][x] = parseInt(dataString[index]);
+                    pixelData[y][x] = ColorPalette.getIndexFromChar(dataString[index]);
                     index++;
                 }
             }
 
-            // Update canvas
             calculatePixelSize();
             updateCanvasSize();
             render();
             updateSizeDisplay();
+            triggerChange();
 
             return true;
         } catch (error) {
             console.error('Import error:', error.message);
-            alert('Import failed: ' + error.message);
+            if (Dialogs) {
+                Dialogs.alert('Import Failed', 'Import failed: ' + error.message, 'error');
+            } else {
+                alert('Import failed: ' + error.message);
+            }
             return false;
         }
     }
 
     /**
-     * Get current pixel data
-     * @returns {Array} 2D array of color codes
+     * Get pixel data
+     * @returns {Array} 2D array of color indices
      */
     function getPixelData() {
         return pixelData;
     }
 
     /**
-     * Get canvas dimensions
+     * Get dimensions
      * @returns {Object} {width, height}
      */
     function getDimensions() {
@@ -420,18 +479,78 @@ const PixelCanvas = (function() {
     }
 
     /**
-     * Update size display in UI
+     * Update size display
      */
     function updateSizeDisplay() {
         const sizeDisplay = document.getElementById('canvasSizeDisplay');
         const charCount = document.getElementById('characterCount');
 
         if (sizeDisplay) {
-            sizeDisplay.textContent = `${width}x${height}`;
+            sizeDisplay.textContent = `${width}×${height}`;
         }
 
         if (charCount) {
             charCount.textContent = width * height;
+        }
+    }
+
+    /**
+     * Render selection preview on overlay
+     * @param {number} x - Current X coordinate
+     * @param {number} y - Current Y coordinate
+     */
+    function renderSelectionPreview(x, y) {
+        if (!selectionOverlay) return;
+
+        const overlayCtx = selectionOverlay.getContext('2d');
+        overlayCtx.clearRect(0, 0, selectionOverlay.width, selectionOverlay.height);
+
+        // Get selection start from Tools module
+        const selectionData = Tools.getSelectionData();
+        if (!selectionData || !selectionData.active) return;
+
+        const startX = Math.min(selectionData.startX, x);
+        const startY = Math.min(selectionData.startY, y);
+        const endX = Math.max(selectionData.startX, x);
+        const endY = Math.max(selectionData.startY, y);
+
+        // Draw selection rectangle
+        overlayCtx.strokeStyle = '#00BFFF';
+        overlayCtx.lineWidth = 2;
+        overlayCtx.setLineDash([4, 4]);
+        overlayCtx.strokeRect(
+            startX * pixelSize,
+            startY * pixelSize,
+            (endX - startX + 1) * pixelSize,
+            (endY - startY + 1) * pixelSize
+        );
+
+        // Draw semi-transparent fill
+        overlayCtx.fillStyle = 'rgba(0, 191, 255, 0.1)';
+        overlayCtx.fillRect(
+            startX * pixelSize,
+            startY * pixelSize,
+            (endX - startX + 1) * pixelSize,
+            (endY - startY + 1) * pixelSize
+        );
+    }
+
+    /**
+     * Clear selection overlay
+     */
+    function clearSelectionOverlay() {
+        if (selectionOverlay) {
+            const overlayCtx = selectionOverlay.getContext('2d');
+            overlayCtx.clearRect(0, 0, selectionOverlay.width, selectionOverlay.height);
+        }
+    }
+
+    /**
+     * Trigger change callback
+     */
+    function triggerChange() {
+        if (onChangeCallback) {
+            onChangeCallback();
         }
     }
 
@@ -444,6 +563,7 @@ const PixelCanvas = (function() {
         exportToString,
         importFromString,
         getPixelData,
-        getDimensions
+        getDimensions,
+        clearSelectionOverlay
     };
 })();

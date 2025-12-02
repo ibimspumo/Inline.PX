@@ -45,7 +45,11 @@ const FileManager = (function() {
             return true;
         } catch (error) {
             console.error('Error saving to LocalStorage:', error);
-            alert('Failed to save: Storage quota may be exceeded');
+            if (Dialogs) {
+                Dialogs.alert('Save Failed', 'Failed to save: Storage quota may be exceeded.', 'error');
+            } else {
+                alert('Failed to save: Storage quota may be exceeded');
+            }
             return false;
         }
     }
@@ -54,19 +58,24 @@ const FileManager = (function() {
      * Save current canvas to LocalStorage
      * @param {string} dataString - Pixel data string from canvas
      * @param {string} name - Optional file name
-     * @returns {boolean} Success status
+     * @returns {Promise<boolean>} Success status
      */
-    function save(dataString, name = null) {
+    async function save(dataString, name = null) {
         // Prompt for name if not provided
         if (!name) {
-            name = prompt('Enter a name for your pixel art:', currentFileName || 'untitled');
+            name = await Dialogs.prompt(
+                'Save Pixel Art',
+                'Enter a name for your pixel art:',
+                currentFileName || 'untitled',
+                { placeholder: 'File name' }
+            );
             if (!name) return false; // User cancelled
         }
 
         // Parse dimensions from data string
         const parts = dataString.split(':');
         if (parts.length !== 2) {
-            alert('Invalid data format');
+            await Dialogs.alert('Invalid Format', 'Invalid data format.', 'error');
             return false;
         }
 
@@ -79,6 +88,21 @@ const FileManager = (function() {
 
         // Check if file with same name exists
         const existingIndex = files.findIndex(f => f.name === name);
+
+        // Ask for confirmation if file exists
+        if (existingIndex >= 0) {
+            const confirmed = await Dialogs.confirm(
+                'Overwrite File',
+                `A file named "${name}" already exists. Overwrite it?`,
+                {
+                    confirmText: 'Overwrite',
+                    cancelText: 'Cancel',
+                    type: 'warning'
+                }
+            );
+
+            if (!confirmed) return false;
+        }
 
         const fileObject = {
             id: existingIndex >= 0 ? files[existingIndex].id : generateId(),
@@ -100,7 +124,7 @@ const FileManager = (function() {
         // Save to LocalStorage
         if (saveAllFiles(files)) {
             currentFileName = name;
-            alert(`Saved as "${name}"`);
+            await Dialogs.alert('Saved!', `Saved as "${name}"`, 'success');
             return true;
         }
 
@@ -332,13 +356,25 @@ const FileManager = (function() {
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'btn btn-danger';
         deleteBtn.textContent = 'Delete';
-        deleteBtn.addEventListener('click', () => {
-            if (confirm(`Delete "${file.name}"?`)) {
+        deleteBtn.addEventListener('click', async () => {
+            const confirmed = await Dialogs.confirm(
+                'Delete File',
+                `Delete "${file.name}"? This cannot be undone.`,
+                {
+                    confirmText: 'Delete',
+                    cancelText: 'Cancel',
+                    type: 'error',
+                    dangerous: true
+                }
+            );
+
+            if (confirmed) {
                 if (deleteFile(file.id)) {
                     item.remove();
 
                     // Check if no files left
-                    if (fileList.children.length === 0) {
+                    const fileListElement = document.getElementById('fileList');
+                    if (fileListElement && fileListElement.children.length === 0) {
                         document.getElementById('noFilesMessage').style.display = 'block';
                     }
                 }
