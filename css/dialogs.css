@@ -186,6 +186,10 @@
     font-size: var(--font-size-sm);
 }
 
+.export-savings.export-warning {
+    color: #e2a04a;
+}
+
 .export-option-info {
     margin-top: var(--spacing-sm);
     margin-left: 26px;

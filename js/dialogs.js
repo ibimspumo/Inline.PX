@@ -207,7 +207,7 @@ const Dialogs = (function() {
         return new Promise((resolve) => {
             // Get compression stats
             const compressionStats = Compression ? Compression.getStats(dataString) : null;
-            const canCompress = compressionStats && compressionStats.savings > 0;
+            const canCompress = compressionStats !== null; // Always show option if Compression module exists
 
             const dialog = createDialogElement({
                 title: 'Export Pixel Art',
@@ -229,12 +229,14 @@ const Dialogs = (function() {
                         ${canCompress ? `
                         <div class="export-option-group">
                             <label class="export-checkbox-label">
-                                <input type="checkbox" id="exportCompress" class="export-checkbox" />
+                                <input type="checkbox" id="exportCompress" class="export-checkbox" ${compressionStats.savings > 0 ? 'checked' : ''} />
                                 <span>Use RLE Compression</span>
-                                <span class="export-savings">Save ${compressionStats.savings}% (${compressionStats.originalSize} → ${compressionStats.compressedSize} chars)</span>
+                                <span class="export-savings ${compressionStats.savings > 0 ? '' : 'export-warning'}">${compressionStats.savings > 0 ? 'Save' : 'Adds'} ${Math.abs(compressionStats.savings)}% (${compressionStats.originalSize} → ${compressionStats.compressedSize} chars)</span>
                             </label>
                             <div class="export-option-info">
-                                Compresses repeated pixels for smaller file size. Recommended for sprites with large solid areas.
+                                ${compressionStats.savings > 0
+                                    ? 'Compresses repeated pixels for smaller file size. Recommended for sprites with large solid areas.'
+                                    : 'Note: This sprite has few repeated pixels, so compression increases file size. Use only if needed for compatibility.'}
                             </div>
 
                             <!-- Compression Preview -->
