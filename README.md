@@ -94,17 +94,15 @@ This can reduce file size by **50-80%** for sprites with large solid areas! The 
 
 ---
 
-## 🚀 Easy Integration - Two Methods
+## 🚀 Easy Integration - Standalone Client-Side
 
-### Method 1: Custom HTML Element (Recommended)
-
-The easiest way! Just include one script and use the `<inline-px>` element:
+Just include one JavaScript file and use the `<inline-px>` custom element:
 
 ```html
-<!-- Include the script -->
+<!-- Include the standalone script (no dependencies!) -->
 <script src="inline-px.js"></script>
 
-<!-- Use the custom element -->
+<!-- Use anywhere in your HTML -->
 <inline-px
     data="16x16:0000000000000000003BB00BB3000000B11111111B..."
     scale="8"
@@ -113,38 +111,18 @@ The easiest way! Just include one script and use the `<inline-px>` element:
 ```
 
 **Features:**
-- ✓ No server required
-- ✓ Automatic RLE compression support
-- ✓ Crisp pixel rendering
-- ✓ Shadow DOM isolation
-- ✓ Works on static sites
+- ✓ **Zero dependencies** - pure vanilla JavaScript
+- ✓ **No server required** - works on static sites (GitHub Pages, Netlify, etc.)
+- ✓ **Automatic RLE compression** support
+- ✓ **Crisp pixel-perfect rendering** with proper CSS
+- ✓ **Shadow DOM isolation** - no style conflicts
+- ✓ **Copy & paste ready** - drop `inline-px.js` into any project
 
-### Method 2: PNG Generation Server
-
-Run the Node.js server for on-the-fly PNG generation via URL:
-
-```bash
-npm install
-npm start
-```
-
-Then use standard `<img>` tags:
-
-```html
-<img src="http://localhost:3000/png?data=16x16:000...&scale=8" alt="Sprite" />
-```
-
-**Features:**
-- ✓ Works with standard `<img>` tags
-- ✓ Server-side rendering
-- ✓ Cacheable images
-- ✓ SEO friendly
-- ✓ SVG fallback option
-
-**API Endpoints:**
-- `GET /png?data=WxH:DATA&scale=4` - Generate PNG
-- `GET /png?data=WxH:DATA&format=svg` - Generate SVG
-- `GET /health` - Health check
+**Attributes:**
+- `data` - Your pixel art string (WxH:DATA or WxH:RLE:DATA)
+- `scale` - Image scale multiplier (default: 1)
+- `alt` - Alternative text for accessibility
+- `class` - CSS classes for styling
 
 ---
 

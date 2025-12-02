@@ -95,12 +95,12 @@
 </head>
 <body>
     <h1>🎨 Inline.px - Usage Examples</h1>
-    <p>Ultra-compact pixel art with on-the-fly PNG generation</p>
+    <p>Ultra-compact pixel art with standalone client-side rendering</p>
 
-    <!-- Method 1: Custom HTML Element -->
+    <!-- Custom HTML Element -->
     <div class="section">
-        <h2>Method 1: Custom HTML Element &lt;inline-px&gt;</h2>
-        <p>The easiest way to use Inline.px - just include the script and use the custom element!</p>
+        <h2>Custom HTML Element &lt;inline-px&gt;</h2>
+        <p>Standalone client-side rendering - no server required! Just include one JavaScript file.</p>
 
         <div class="example">
             <h3>Basic Usage</h3>
@@ -152,112 +152,16 @@
         </div>
 
         <div class="note">
-            <strong>✓ Advantages:</strong>
+            <strong>✓ Features:</strong>
             <ul>
-                <li>Client-side rendering (no server needed)</li>
-                <li>Automatic compression support</li>
-                <li>Crisp pixel rendering with CSS</li>
-                <li>Shadow DOM isolation</li>
-                <li>Easy to use</li>
+                <li><strong>Zero dependencies</strong> - Pure vanilla JavaScript</li>
+                <li><strong>No server required</strong> - Works on GitHub Pages, Netlify, etc.</li>
+                <li><strong>Automatic RLE compression</strong> support</li>
+                <li><strong>Crisp pixel-perfect rendering</strong> with proper CSS</li>
+                <li><strong>Shadow DOM isolation</strong> - No style conflicts</li>
+                <li><strong>Copy & paste ready</strong> - Drop into any project</li>
             </ul>
         </div>
-    </div>
-
-    <!-- Method 2: Server-side PNG Generation -->
-    <div class="section">
-        <h2>Method 2: Server-Side PNG Generation</h2>
-        <p>Use the Node.js server to generate PNGs on-the-fly via URL parameters.</p>
-
-        <div class="example">
-            <h3>Start the Server</h3>
-            <pre>npm install
-npm start</pre>
-            <p>Server runs on <code>http://localhost:3000</code></p>
-        </div>
-
-        <div class="example">
-            <h3>Use as Image URL</h3>
-            <pre>&lt;img
-    src="http://localhost:3000/png?data=16x16:000...&scale=8"
-    alt="Pixel art sprite"
-/&gt;</pre>
-
-            <h4>Example with actual server (if running):</h4>
-            <p><em>Start the server with <code>npm start</code> to see this:</em></p>
-            <img
-                src="http://localhost:3000/png?data=16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000&scale=8"
-                alt="Heart sprite"
-                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
-            />
-            <p style="display:none; color: #e2a04a;">⚠️ Server not running. Start with <code>npm start</code></p>
-        </div>
-
-        <div class="example">
-            <h3>URL Parameters</h3>
-            <ul>
-                <li><code>data</code> - The pixel art string (required)</li>
-                <li><code>scale</code> - Scale multiplier 1-16 (default: 1)</li>
-                <li><code>format</code> - Output format: png or svg (default: png)</li>
-            </ul>
-        </div>
-
-        <div class="note">
-            <strong>✓ Advantages:</strong>
-            <ul>
-                <li>Works with standard &lt;img&gt; tags</li>
-                <li>Server-side rendering</li>
-                <li>Cacheable images</li>
-                <li>SVG fallback option</li>
-                <li>No client-side JavaScript needed</li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Comparison -->
-    <div class="section">
-        <h2>Which Method Should I Use?</h2>
-
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background: #1e1e1e;">
-                    <th style="padding: 12px; text-align: left; border: 1px solid #404040;">Feature</th>
-                    <th style="padding: 12px; text-align: center; border: 1px solid #404040;">Custom Element</th>
-                    <th style="padding: 12px; text-align: center; border: 1px solid #404040;">Server API</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="padding: 12px; border: 1px solid #404040;">Setup Complexity</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ Easy</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">Moderate</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; border: 1px solid #404040;">Server Required</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">No</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ Yes</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; border: 1px solid #404040;">Client-side JS</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ Required</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">No</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; border: 1px solid #404040;">Caching</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">Browser</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ CDN/Server</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; border: 1px solid #404040;">SEO Friendly</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">Moderate</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ Yes</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; border: 1px solid #404040;">Static Sites</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ Perfect</td>
-                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">No</td>
-                </tr>
-            </tbody>
-        </table>
     </div>
 
     <!-- Advanced Examples -->
