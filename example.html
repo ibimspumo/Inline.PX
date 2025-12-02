@@ -109,7 +109,7 @@
 
 &lt;!-- Use the custom element --&gt;
 &lt;inline-px
-    data="8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410"
+    data="8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040"
     scale="8"
     alt="Heart sprite"
 &gt;&lt;/inline-px&gt;</pre>
@@ -117,7 +117,7 @@
             <div class="sprite-showcase">
                 <div class="sprite-item">
                     <inline-px
-                        data="8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410"
+                        data="8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040"
                         scale="16"
                         alt="Heart sprite"
                     ></inline-px>
@@ -125,7 +125,7 @@
                 </div>
                 <div class="sprite-item">
                     <inline-px
-                        data="8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410"
+                        data="8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040"
                         scale="8"
                         alt="Heart sprite"
                     ></inline-px>
@@ -133,7 +133,7 @@
                 </div>
                 <div class="sprite-item">
                     <inline-px
-                        data="8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410"
+                        data="8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040"
                         scale="4"
                         alt="Heart sprite"
                     ></inline-px>
@@ -153,7 +153,8 @@
             <p>Without compression, the format is: <code>WIDTHxHEIGHT:DATA</code></p>
             <div class="warning" style="margin-top: 15px; padding: 12px; background: #3a2a1a; border-left: 4px solid #e2a04a; border-radius: 4px;">
                 <strong>⚠️ Important:</strong> Always use the export function in the editor to generate compressed strings.
-                The RLE format uses COUNT+CHAR encoding (e.g., "30" = three zeros) which must be consistently formatted.
+                The RLE format uses fixed 2-digit COUNT + CHAR encoding (e.g., "03a" = three 'a's, "10b" = ten 'b's).
+                Maximum run length is 99 characters.
             </div>
         </div>
 
@@ -192,7 +193,7 @@
             <h3>2. UI Icons</h3>
             <p>Ultra-compact icons for web apps:</p>
             <pre>&lt;button&gt;
-    &lt;inline-px data="8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410" scale="2"&gt;&lt;/inline-px&gt;
+    &lt;inline-px data="8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040" scale="2"&gt;&lt;/inline-px&gt;
     Like
 &lt;/button&gt;</pre>
             <p><strong>Benefits:</strong> Crisp at any resolution, tiny file size, easy to customize</p>
@@ -211,7 +212,7 @@
             <h3>4. Email Signatures</h3>
             <p>Pixel art in HTML emails (data URIs work in email clients):</p>
             <pre>&lt;!-- The custom element generates a data URI internally --&gt;
-&lt;inline-px data="8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410" scale="2"&gt;&lt;/inline-px&gt;</pre>
+&lt;inline-px data="8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040" scale="2"&gt;&lt;/inline-px&gt;</pre>
             <p><strong>Benefits:</strong> No external image hosting required</p>
         </div>
 
@@ -230,7 +231,7 @@
             <pre>// Ultra-compact format perfect for blockchain storage
 const metadata = {
     name: "Heart NFT",
-    image_data: "8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410"
+    image_data: "8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040"
 };</pre>
             <p><strong>Benefits:</strong> Minimal gas costs, fully on-chain, human-readable</p>
         </div>
@@ -265,7 +266,7 @@ const metadata = {
 &lt;/style&gt;
 
 &lt;inline-px
-    data="8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410"
+    data="8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040"
     scale="4"
     class="animated"
 &gt;&lt;/inline-px&gt;</pre>
@@ -275,7 +276,7 @@ const metadata = {
             <h3>JavaScript API</h3>
             <pre>// Create element dynamically
 const sprite = document.createElement('inline-px');
-sprite.setAttribute('data', '8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410');
+sprite.setAttribute('data', '8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040');
 sprite.setAttribute('scale', '4');
 sprite.setAttribute('alt', 'Heart icon');
 document.body.appendChild(sprite);
@@ -283,7 +284,7 @@ document.body.appendChild(sprite);
 // Update dynamically (e.g., animation frames)
 let frame = 0;
 const frames = [
-    '8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410',
+    '8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040',
     '8x8:RLE:...' // Different frame
 ];
 
@@ -335,7 +336,7 @@ fetch('sprites.json')
 
 // sprites.json:
 {
-    "heart": "8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410",
+    "heart": "8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040",
     "star": "8x8:RLE:...",
     "coin": "8x8:RLE:..."
 }</pre>
@@ -361,7 +362,7 @@ fetch('sprites.json')
             <h3>Accessibility</h3>
             <pre>&lt;!-- Always provide alt text --&gt;
 &lt;inline-px
-    data="8x8:RLE:80102120211021102021102113211011151310111513111021132114103116104116104110211420211410211410"
+    data="8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040"
     scale="4"
     alt="Red heart icon representing a life or health point"
     role="img"

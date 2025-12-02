@@ -30,12 +30,13 @@ const Compression = (function() {
         let current = data[0];
 
         for (let i = 1; i <= data.length; i++) {
-            if (i < data.length && data[i] === current && count < 999) {
+            if (i < data.length && data[i] === current && count < 99) {
                 count++;
             } else {
-                // Always use COUNT+CHAR format for consistent parsing
-                // This prevents ambiguity with digit characters (0-9)
-                compressed += `${count}${current}`;
+                // Always use COUNT+CHAR format with 2-digit count (leading zero if needed)
+                // This ensures consistent parsing: "01a" = 1×'a', "10b" = 10×'b'
+                const countStr = count.toString().padStart(2, '0');
+                compressed += `${countStr}${current}`;
 
                 if (i < data.length) {
                     current = data[i];
@@ -81,26 +82,16 @@ const Compression = (function() {
             let i = 0;
 
             while (i < compressed.length) {
-                // Check if this is a run (starts with digit)
-                if (/\d/.test(compressed[i])) {
-                    // Parse count
-                    let countStr = '';
-                    while (i < compressed.length && /\d/.test(compressed[i])) {
-                        countStr += compressed[i];
-                        i++;
-                    }
+                // Parse fixed 2-digit count
+                if (i + 2 < compressed.length) {
+                    const countStr = compressed.substring(i, i + 2);
                     const count = parseInt(countStr);
-
-                    // Get character
-                    if (i < compressed.length) {
-                        const char = compressed[i];
-                        decompressed += char.repeat(count);
-                        i++;
-                    }
+                    const char = compressed[i + 2];
+                    decompressed += char.repeat(count);
+                    i += 3; // Skip count (2 digits) + char (1)
                 } else {
-                    // Single character
-                    decompressed += compressed[i];
-                    i++;
+                    // Malformed data, skip
+                    break;
                 }
             }
 

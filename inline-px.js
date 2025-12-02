@@ -66,21 +66,16 @@
         let i = 0;
 
         while (i < compressed.length) {
-            if (/\d/.test(compressed[i])) {
-                let numStr = '';
-                while (i < compressed.length && /\d/.test(compressed[i])) {
-                    numStr += compressed[i];
-                    i++;
-                }
-                const count = parseInt(numStr);
-                if (i < compressed.length) {
-                    const char = compressed[i];
-                    decompressed += char.repeat(count);
-                    i++;
-                }
+            // Parse fixed 2-digit count
+            if (i + 2 < compressed.length) {
+                const countStr = compressed.substring(i, i + 2);
+                const count = parseInt(countStr);
+                const char = compressed[i + 2];
+                decompressed += char.repeat(count);
+                i += 3; // Skip count (2 digits) + char (1)
             } else {
-                decompressed += compressed[i];
-                i++;
+                // Malformed data, skip
+                break;
             }
         }
 
