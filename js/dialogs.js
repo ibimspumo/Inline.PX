@@ -201,21 +201,94 @@ const Dialogs = (function() {
     /**
      * Show custom export dialog
      * @param {string} dataString - Export data string
-     * @returns {Promise<string>} Resolves with 'copy' or 'download'
+     * @returns {Promise<Object>} Resolves with export options
      */
     function exportDialog(dataString) {
         return new Promise((resolve) => {
+            // Get compression stats
+            const compressionStats = Compression ? Compression.getStats(dataString) : null;
+            const canCompress = compressionStats && compressionStats.savings > 0;
+
             const dialog = createDialogElement({
                 title: 'Export Pixel Art',
                 message: 'Choose how you want to export your pixel art:',
                 icon: '⬇️',
                 type: 'info',
                 customContent: `
-                    <div class="export-preview">
-                        <code class="export-code-preview">${escapeHtml(dataString)}</code>
-                        <div class="export-info-small">
-                            <strong>Format:</strong> Base64 (64 colors) •
-                            <strong>Length:</strong> ${dataString.length} chars
+                    <div class="export-options">
+                        <!-- String Preview -->
+                        <div class="export-preview">
+                            <div class="export-preview-header">
+                                <strong>Text Format Preview:</strong>
+                                <span class="export-preview-size">${dataString.length} chars</span>
+                            </div>
+                            <code class="export-code-preview">${escapeHtml(dataString.substring(0, 100))}${dataString.length > 100 ? '...' : ''}</code>
+                        </div>
+
+                        <!-- Compression Option -->
+                        ${canCompress ? `
+                        <div class="export-option-group">
+                            <label class="export-checkbox-label">
+                                <input type="checkbox" id="exportCompress" class="export-checkbox" />
+                                <span>Use RLE Compression</span>
+                                <span class="export-savings">Save ${compressionStats.savings}% (${compressionStats.originalSize} → ${compressionStats.compressedSize} chars)</span>
+                            </label>
+                            <div class="export-option-info">
+                                Compresses repeated pixels for smaller file size. Recommended for sprites with large solid areas.
+                            </div>
+
+                            <!-- Compression Preview -->
+                            <div class="compression-preview">
+                                <div class="compression-preview-section">
+                                    <div class="compression-preview-label">
+                                        <strong>Before:</strong>
+                                        <span class="compression-preview-size">${compressionStats.originalSize} chars</span>
+                                    </div>
+                                    <code class="compression-preview-code">${escapeHtml(dataString.substring(0, 80))}${dataString.length > 80 ? '...' : ''}</code>
+                                </div>
+                                <div class="compression-preview-arrow">→</div>
+                                <div class="compression-preview-section">
+                                    <div class="compression-preview-label">
+                                        <strong>After:</strong>
+                                        <span class="compression-preview-size compression-highlight">${compressionStats.compressedSize} chars</span>
+                                    </div>
+                                    <code class="compression-preview-code">${escapeHtml(compressionStats.compressed.substring(0, 80))}${compressionStats.compressed.length > 80 ? '...' : ''}</code>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <!-- Export Format Buttons -->
+                        <div class="export-format-section">
+                            <strong>Export as:</strong>
+                            <div class="export-format-buttons">
+                                <button class="export-format-btn" data-format="copy-string">
+                                    <span class="export-format-icon">📋</span>
+                                    <span class="export-format-label">Copy String</span>
+                                    <span class="export-format-desc">Copy to clipboard</span>
+                                </button>
+                                <button class="export-format-btn" data-format="download-txt">
+                                    <span class="export-format-icon">📄</span>
+                                    <span class="export-format-label">Download TXT</span>
+                                    <span class="export-format-desc">Save as text file</span>
+                                </button>
+                                <button class="export-format-btn" data-format="download-png">
+                                    <span class="export-format-icon">🖼️</span>
+                                    <span class="export-format-label">Download PNG</span>
+                                    <span class="export-format-desc">Save as image</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- PNG Scale Options (hidden initially) -->
+                        <div id="pngScaleOptions" class="png-scale-options" style="display: none;">
+                            <strong>PNG Scale:</strong>
+                            <div class="png-scale-buttons">
+                                <button class="png-scale-btn active" data-scale="1">1×</button>
+                                <button class="png-scale-btn" data-scale="2">2×</button>
+                                <button class="png-scale-btn" data-scale="4">4×</button>
+                                <button class="png-scale-btn" data-scale="8">8×</button>
+                            </div>
                         </div>
                     </div>
                 `,
@@ -227,27 +300,53 @@ const Dialogs = (function() {
                             closeDialog();
                             resolve(null);
                         }
-                    },
-                    {
-                        text: '📋 Copy String',
-                        type: 'primary',
-                        action: () => {
-                            closeDialog();
-                            resolve('copy');
-                        }
-                    },
-                    {
-                        text: '💾 Download File',
-                        type: 'primary',
-                        action: () => {
-                            closeDialog();
-                            resolve('download');
-                        }
                     }
                 ]
             });
 
             showDialog(dialog);
+
+            // Setup format button handlers
+            let selectedFormat = null;
+            let selectedScale = 1;
+
+            dialog.querySelectorAll('.export-format-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Update selection
+                    dialog.querySelectorAll('.export-format-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    selectedFormat = btn.dataset.format;
+
+                    // Show PNG scale options if PNG selected
+                    const pngOptions = dialog.querySelector('#pngScaleOptions');
+                    if (selectedFormat === 'download-png') {
+                        pngOptions.style.display = 'block';
+                    } else {
+                        pngOptions.style.display = 'none';
+                    }
+
+                    // Auto-submit on selection
+                    setTimeout(() => {
+                        const useCompression = dialog.querySelector('#exportCompress')?.checked || false;
+                        closeDialog();
+                        resolve({
+                            format: selectedFormat,
+                            compress: useCompression,
+                            scale: selectedScale
+                        });
+                    }, 150);
+                });
+            });
+
+            // Setup PNG scale handlers
+            dialog.querySelectorAll('.png-scale-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dialog.querySelectorAll('.png-scale-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    selectedScale = parseInt(btn.dataset.scale);
+                });
+            });
         });
     }
 

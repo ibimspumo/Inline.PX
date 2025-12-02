@@ -393,26 +393,51 @@ const App = (function() {
      * Handle Export File
      */
     async function handleExportFile() {
-        const dataString = PixelCanvas.exportToString();
+        let dataString = PixelCanvas.exportToString();
         const filename = FileManager.getCurrentFileName() || 'pixelart';
 
-        // Show export dialog with copy and download options
-        const choice = await Dialogs.exportDialog(dataString);
+        // Show export dialog with options
+        const options = await Dialogs.exportDialog(dataString);
 
-        if (choice === 'copy') {
-            // Copy to clipboard
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(dataString).then(() => {
-                    Dialogs.alert('Copied!', 'Pixel art string copied to clipboard.', 'success');
-                }).catch(() => {
+        if (!options) return; // User cancelled
+
+        // Apply compression if requested
+        if (options.compress && Compression) {
+            const result = Compression.smartCompress(dataString);
+            dataString = result.data;
+        }
+
+        // Handle different export formats
+        switch (options.format) {
+            case 'copy-string':
+                // Copy to clipboard
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(dataString).then(() => {
+                        Dialogs.alert('Copied!', 'Pixel art string copied to clipboard.', 'success');
+                    }).catch(() => {
+                        fallbackCopyString(dataString);
+                    });
+                } else {
                     fallbackCopyString(dataString);
-                });
-            } else {
-                fallbackCopyString(dataString);
-            }
-        } else if (choice === 'download') {
-            // Download as file
-            FileManager.exportAsFile(dataString, filename);
+                }
+                break;
+
+            case 'download-txt':
+                // Download as text file
+                FileManager.exportAsFile(dataString, filename);
+                break;
+
+            case 'download-png':
+                // Export as PNG
+                if (PNGExport) {
+                    const scale = options.scale || 1;
+                    const pngFilename = filename.replace(/\.txt$/, '') + '.png';
+                    PNGExport.exportToPNG(scale, pngFilename);
+                    await Dialogs.alert('PNG Exported!', `Exported as ${pngFilename} at ${scale}× scale.`, 'success');
+                } else {
+                    await Dialogs.alert('Error', 'PNG export not available.', 'error');
+                }
+                break;
         }
     }
 

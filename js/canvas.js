@@ -391,12 +391,18 @@ const PixelCanvas = (function() {
 
     /**
      * Import from Base64 string
-     * @param {string} str - Import string in format "WxH:BASE64DATA"
+     * @param {string} str - Import string in format "WxH:BASE64DATA" or "WxH:RLE:DATA"
      * @returns {boolean} Success
      */
     function importFromString(str) {
         try {
-            const parts = str.split(':');
+            // Check if compressed, decompress if needed
+            let decompressedString = str;
+            if (Compression && Compression.isCompressed(str)) {
+                decompressedString = Compression.decompress(str);
+            }
+
+            const parts = decompressedString.split(':');
             if (parts.length !== 2) {
                 throw new Error('Invalid format. Expected "WxH:DATA"');
             }
