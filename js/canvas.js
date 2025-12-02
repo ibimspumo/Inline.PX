@@ -543,25 +543,21 @@ const PixelCanvas = (function() {
             return;
         }
 
-        // Draw selection rectangle
+        // Calculate pixel-aligned positions
+        const rectX = Math.floor(startX * pixelSize);
+        const rectY = Math.floor(startY * pixelSize);
+        const rectWidth = Math.floor((endX - startX + 1) * pixelSize);
+        const rectHeight = Math.floor((endY - startY + 1) * pixelSize);
+
+        // Draw selection rectangle (pixel-perfect aligned)
         overlayCtx.strokeStyle = '#00BFFF';
         overlayCtx.lineWidth = 2;
         overlayCtx.setLineDash([4, 4]);
-        overlayCtx.strokeRect(
-            startX * pixelSize,
-            startY * pixelSize,
-            (endX - startX + 1) * pixelSize,
-            (endY - startY + 1) * pixelSize
-        );
+        overlayCtx.strokeRect(rectX, rectY, rectWidth, rectHeight);
 
         // Draw semi-transparent fill
         overlayCtx.fillStyle = 'rgba(0, 191, 255, 0.1)';
-        overlayCtx.fillRect(
-            startX * pixelSize,
-            startY * pixelSize,
-            (endX - startX + 1) * pixelSize,
-            (endY - startY + 1) * pixelSize
-        );
+        overlayCtx.fillRect(rectX, rectY, rectWidth, rectHeight);
     }
 
     /**

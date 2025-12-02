@@ -216,6 +216,16 @@ const App = (function() {
 
             const key = e.key.toLowerCase();
 
+            // Escape key - clear selection
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (Tools.hasSelection()) {
+                    Tools.clearSelection();
+                    PixelCanvas.clearSelectionOverlay();
+                }
+                return;
+            }
+
             if (toolShortcuts[key]) {
                 e.preventDefault();
                 Tools.setTool(toolShortcuts[key]);

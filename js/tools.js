@@ -157,14 +157,9 @@ const Tools = (function() {
             return;
         }
 
-        // Clear selection when switching away from select tool
-        if (currentTool === TOOL_TYPES.SELECT && toolType !== TOOL_TYPES.SELECT) {
-            clearSelection();
-            // Clear selection overlay on canvas
-            if (typeof PixelCanvas !== 'undefined' && PixelCanvas.clearSelectionOverlay) {
-                PixelCanvas.clearSelectionOverlay();
-            }
-        }
+        // Keep selection active when switching tools
+        // Selection should persist across all tools so you can use different tools within the selection
+        // Only clear when explicitly clicking outside or using Escape key
 
         currentTool = toolType;
 
@@ -334,9 +329,11 @@ const Tools = (function() {
      * @returns {Object|null} Selection data
      */
     function getSelectionData() {
-        if (currentTool === TOOL_TYPES.SELECT && selectionActive) {
-            if (isDrawing) {
-                // During drawing - return start position
+        // Return selection data regardless of current tool
+        // Selection should be visible and usable with all tools
+        if (selectionActive) {
+            if (currentTool === TOOL_TYPES.SELECT && isDrawing) {
+                // During drawing with select tool - return start position
                 return {
                     active: true,
                     startX: startX,
@@ -344,7 +341,7 @@ const Tools = (function() {
                     isDrawing: true
                 };
             } else if (selectionBounds) {
-                // After drawing - return final bounds
+                // Selection is finalized - return bounds
                 return {
                     active: true,
                     startX: selectionBounds.x1,
