@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inline.px - Usage Examples</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        h1, h2 {
+            color: #fff;
+        }
+
+        .section {
+            margin: 40px 0;
+            padding: 30px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            border: 1px solid #404040;
+        }
+
+        .example {
+            margin: 20px 0;
+            padding: 20px;
+            background: #1e1e1e;
+            border-radius: 6px;
+            border-left: 4px solid #00BFFF;
+        }
+
+        .example h3 {
+            margin-top: 0;
+            color: #00BFFF;
+        }
+
+        pre {
+            background: #0d0d0d;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            color: #00ff00;
+            border: 1px solid #333;
+        }
+
+        code {
+            background: #0d0d0d;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #00ff00;
+        }
+
+        .sprite-showcase {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .sprite-item {
+            text-align: center;
+        }
+
+        .sprite-item img,
+        .sprite-item inline-px {
+            background:
+                repeating-conic-gradient(#2a2a2a 0% 25%, #1a1a1a 0% 50%)
+                50% / 20px 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .note {
+            background: #2a3a4a;
+            border-left: 4px solid #4a90e2;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .warning {
+            background: #3a2a1a;
+            border-left: 4px solid #e2a04a;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Inline.px - Usage Examples</h1>
+    <p>Ultra-compact pixel art with on-the-fly PNG generation</p>
+
+    <!-- Method 1: Custom HTML Element -->
+    <div class="section">
+        <h2>Method 1: Custom HTML Element &lt;inline-px&gt;</h2>
+        <p>The easiest way to use Inline.px - just include the script and use the custom element!</p>
+
+        <div class="example">
+            <h3>Basic Usage</h3>
+            <pre>&lt;!-- Include the custom element script --&gt;
+&lt;script src="inline-px.js"&gt;&lt;/script&gt;
+
+&lt;!-- Use the custom element --&gt;
+&lt;inline-px
+    data="16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000"
+    scale="8"
+    alt="Heart sprite"
+&gt;&lt;/inline-px&gt;</pre>
+
+            <div class="sprite-showcase">
+                <div class="sprite-item">
+                    <inline-px
+                        data="16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000"
+                        scale="8"
+                        alt="Heart sprite"
+                    ></inline-px>
+                    <p><small>Heart at 8× scale</small></p>
+                </div>
+                <div class="sprite-item">
+                    <inline-px
+                        data="16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000"
+                        scale="4"
+                        alt="Heart sprite"
+                    ></inline-px>
+                    <p><small>Heart at 4× scale</small></p>
+                </div>
+                <div class="sprite-item">
+                    <inline-px
+                        data="16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000"
+                        scale="2"
+                        alt="Heart sprite"
+                    ></inline-px>
+                    <p><small>Heart at 2× scale</small></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="example">
+            <h3>With RLE Compression</h3>
+            <p>The custom element automatically handles compressed data:</p>
+            <pre>&lt;inline-px
+    data="16x16:RLE:16003B2B3B11B9B11B10B9B11B9B11B10B9B11B9B11B10B9B11B8B11B7B11B6B11B5B11B4B11B3B11B2B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B"
+    scale="4"
+&gt;&lt;/inline-px&gt;</pre>
+        </div>
+
+        <div class="note">
+            <strong>✓ Advantages:</strong>
+            <ul>
+                <li>Client-side rendering (no server needed)</li>
+                <li>Automatic compression support</li>
+                <li>Crisp pixel rendering with CSS</li>
+                <li>Shadow DOM isolation</li>
+                <li>Easy to use</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Method 2: Server-side PNG Generation -->
+    <div class="section">
+        <h2>Method 2: Server-Side PNG Generation</h2>
+        <p>Use the Node.js server to generate PNGs on-the-fly via URL parameters.</p>
+
+        <div class="example">
+            <h3>Start the Server</h3>
+            <pre>npm install
+npm start</pre>
+            <p>Server runs on <code>http://localhost:3000</code></p>
+        </div>
+
+        <div class="example">
+            <h3>Use as Image URL</h3>
+            <pre>&lt;img
+    src="http://localhost:3000/png?data=16x16:000...&scale=8"
+    alt="Pixel art sprite"
+/&gt;</pre>
+
+            <h4>Example with actual server (if running):</h4>
+            <p><em>Start the server with <code>npm start</code> to see this:</em></p>
+            <img
+                src="http://localhost:3000/png?data=16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000&scale=8"
+                alt="Heart sprite"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+            />
+            <p style="display:none; color: #e2a04a;">⚠️ Server not running. Start with <code>npm start</code></p>
+        </div>
+
+        <div class="example">
+            <h3>URL Parameters</h3>
+            <ul>
+                <li><code>data</code> - The pixel art string (required)</li>
+                <li><code>scale</code> - Scale multiplier 1-16 (default: 1)</li>
+                <li><code>format</code> - Output format: png or svg (default: png)</li>
+            </ul>
+        </div>
+
+        <div class="note">
+            <strong>✓ Advantages:</strong>
+            <ul>
+                <li>Works with standard &lt;img&gt; tags</li>
+                <li>Server-side rendering</li>
+                <li>Cacheable images</li>
+                <li>SVG fallback option</li>
+                <li>No client-side JavaScript needed</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Comparison -->
+    <div class="section">
+        <h2>Which Method Should I Use?</h2>
+
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #1e1e1e;">
+                    <th style="padding: 12px; text-align: left; border: 1px solid #404040;">Feature</th>
+                    <th style="padding: 12px; text-align: center; border: 1px solid #404040;">Custom Element</th>
+                    <th style="padding: 12px; text-align: center; border: 1px solid #404040;">Server API</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 12px; border: 1px solid #404040;">Setup Complexity</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ Easy</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">Moderate</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px; border: 1px solid #404040;">Server Required</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">No</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ Yes</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px; border: 1px solid #404040;">Client-side JS</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ Required</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">No</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px; border: 1px solid #404040;">Caching</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">Browser</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ CDN/Server</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px; border: 1px solid #404040;">SEO Friendly</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">Moderate</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ Yes</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px; border: 1px solid #404040;">Static Sites</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">✓ Perfect</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #404040;">No</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Advanced Examples -->
+    <div class="section">
+        <h2>Advanced Examples</h2>
+
+        <div class="example">
+            <h3>CSS Styling</h3>
+            <pre>inline-px {
+    display: inline-block;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+    transition: transform 0.2s;
+}
+
+inline-px:hover {
+    transform: scale(1.1);
+}</pre>
+        </div>
+
+        <div class="example">
+            <h3>JavaScript API</h3>
+            <pre>// Create element dynamically
+const sprite = document.createElement('inline-px');
+sprite.setAttribute('data', '16x16:000...');
+sprite.setAttribute('scale', '4');
+document.body.appendChild(sprite);
+
+// Update dynamically
+sprite.setAttribute('scale', '8');</pre>
+        </div>
+    </div>
+
+    <!-- Include the custom element script -->
+    <script src="inline-px.js"></script>
+</body>
+</html>
