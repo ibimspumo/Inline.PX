@@ -21,7 +21,15 @@ const TabManager = (function() {
      */
     function init() {
         createTabBar();
-        createNewTab('Untitled-1', 16, 16);
+
+        // Try to restore autosaved tabs
+        const restoredTabs = restoreAutosavedTabs();
+
+        if (restoredTabs.length === 0) {
+            // No saved tabs, create new one
+            createNewTab('Untitled-1', 16, 16);
+        }
+
         console.log('Tab Manager initialized');
     }
 
@@ -351,6 +359,74 @@ const TabManager = (function() {
             updateTabUI(tab);
             document.title = `${tab.name} - PixelCreator Pro`;
         }
+    }
+
+    /**
+     * Restore autosaved tabs from localStorage
+     * @returns {Array} Array of restored tabs
+     */
+    function restoreAutosavedTabs() {
+        const restoredTabs = [];
+
+        try {
+            // Look for autosave keys in localStorage
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+
+                if (key && key.startsWith('autosave_tab_') && !key.endsWith('_timestamp')) {
+                    const tabId = key.replace('autosave_', '');
+                    const autosaveData = Autosave ? Autosave.loadAutosave(tabId) : null;
+
+                    if (autosaveData && autosaveData.data) {
+                        // Parse the data to get dimensions
+                        const parts = autosaveData.data.split(':');
+                        let dimensions, dataString;
+
+                        if (parts[1] === 'RLE') {
+                            // Compressed format: WxH:RLE:DATA
+                            dimensions = parts[0].split('x');
+                            // Decompress to get actual data
+                            const decompressed = Compression.decompress(autosaveData.data);
+                            dataString = decompressed;
+                        } else {
+                            // Standard format: WxH:DATA
+                            dimensions = parts[0].split('x');
+                            dataString = autosaveData.data;
+                        }
+
+                        const width = parseInt(dimensions[0]);
+                        const height = parseInt(dimensions[1]);
+
+                        // Create tab with restored data
+                        tabCounter++;
+                        const tab = {
+                            id: tabId,
+                            name: `Restored-${tabCounter}`,
+                            width: width,
+                            height: height,
+                            data: dataString,
+                            isDirty: false,
+                            created: autosaveData.timestamp,
+                            modified: autosaveData.timestamp
+                        };
+
+                        tabs.push(tab);
+                        renderTab(tab);
+                        restoredTabs.push(tab);
+                    }
+                }
+            }
+
+            // Switch to first restored tab
+            if (restoredTabs.length > 0) {
+                switchToTab(restoredTabs[0].id);
+                console.log(`Restored ${restoredTabs.length} autosaved tab(s)`);
+            }
+        } catch (error) {
+            console.error('Failed to restore autosaved tabs:', error);
+        }
+
+        return restoredTabs;
     }
 
     // Public API

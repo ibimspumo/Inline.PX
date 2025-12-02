@@ -203,6 +203,11 @@ const PixelCanvas = (function() {
             render();
             triggerChange();
         }
+
+        // Update selection visualization after drawing ends
+        if (Tools.getCurrentTool() === Tools.TOOL_TYPES.SELECT) {
+            renderSelectionPreview();
+        }
     }
 
     /**
@@ -280,6 +285,11 @@ const PixelCanvas = (function() {
 
         // Draw grid
         drawGrid();
+
+        // Re-render selection if active
+        if (Tools && Tools.getCurrentTool() === Tools.TOOL_TYPES.SELECT && Tools.hasSelection()) {
+            renderSelectionPreview();
+        }
     }
 
     /**
@@ -502,8 +512,8 @@ const PixelCanvas = (function() {
 
     /**
      * Render selection preview on overlay
-     * @param {number} x - Current X coordinate
-     * @param {number} y - Current Y coordinate
+     * @param {number} x - Current X coordinate (optional during drawing)
+     * @param {number} y - Current Y coordinate (optional during drawing)
      */
     function renderSelectionPreview(x, y) {
         if (!selectionOverlay) return;
@@ -511,14 +521,27 @@ const PixelCanvas = (function() {
         const overlayCtx = selectionOverlay.getContext('2d');
         overlayCtx.clearRect(0, 0, selectionOverlay.width, selectionOverlay.height);
 
-        // Get selection start from Tools module
+        // Get selection data from Tools module
         const selectionData = Tools.getSelectionData();
         if (!selectionData || !selectionData.active) return;
 
-        const startX = Math.min(selectionData.startX, x);
-        const startY = Math.min(selectionData.startY, y);
-        const endX = Math.max(selectionData.startX, x);
-        const endY = Math.max(selectionData.startY, y);
+        let startX, startY, endX, endY;
+
+        if (selectionData.isDrawing && x !== undefined && y !== undefined) {
+            // During drawing - use current mouse position
+            startX = Math.min(selectionData.startX, x);
+            startY = Math.min(selectionData.startY, y);
+            endX = Math.max(selectionData.startX, x);
+            endY = Math.max(selectionData.startY, y);
+        } else if (!selectionData.isDrawing && selectionData.endX !== undefined) {
+            // After drawing - use final bounds
+            startX = selectionData.startX;
+            startY = selectionData.startY;
+            endX = selectionData.endX;
+            endY = selectionData.endY;
+        } else {
+            return;
+        }
 
         // Draw selection rectangle
         overlayCtx.strokeStyle = '#00BFFF';

@@ -137,6 +137,7 @@ const Tools = (function() {
     let startY = 0;
     let previewData = null; // For shape preview
     let selectionActive = false; // For selection tool
+    let selectionBounds = null; // Persistent selection bounds {x1, y1, x2, y2}
 
     /**
      * Initialize tools system
@@ -154,6 +155,15 @@ const Tools = (function() {
         if (!TOOL_INFO[toolType]) {
             console.error('Invalid tool type:', toolType);
             return;
+        }
+
+        // Clear selection when switching away from select tool
+        if (currentTool === TOOL_TYPES.SELECT && toolType !== TOOL_TYPES.SELECT) {
+            clearSelection();
+            // Clear selection overlay on canvas
+            if (typeof PixelCanvas !== 'undefined' && PixelCanvas.clearSelectionOverlay) {
+                PixelCanvas.clearSelectionOverlay();
+            }
         }
 
         currentTool = toolType;
@@ -277,7 +287,6 @@ const Tools = (function() {
         if (!isDrawing) return false;
 
         isDrawing = false;
-        selectionActive = false;
         let modified = false;
 
         switch (currentTool) {
@@ -298,8 +307,21 @@ const Tools = (function() {
                 break;
 
             case TOOL_TYPES.SELECT:
-                // Selection doesn't modify data
-                console.log('Selection created:', startX, startY, 'to', x, y);
+                // Finalize selection - keep it active
+                if (x >= 0 && y >= 0) {
+                    selectionBounds = {
+                        x1: Math.min(startX, x),
+                        y1: Math.min(startY, y),
+                        x2: Math.max(startX, x),
+                        y2: Math.max(startY, y)
+                    };
+                    selectionActive = true; // Keep selection active!
+                    console.log('Selection finalized:', selectionBounds);
+                } else {
+                    // Clicked outside, deselect
+                    selectionActive = false;
+                    selectionBounds = null;
+                }
                 break;
         }
 
@@ -313,13 +335,66 @@ const Tools = (function() {
      */
     function getSelectionData() {
         if (currentTool === TOOL_TYPES.SELECT && selectionActive) {
-            return {
-                active: true,
-                startX: startX,
-                startY: startY
-            };
+            if (isDrawing) {
+                // During drawing - return start position
+                return {
+                    active: true,
+                    startX: startX,
+                    startY: startY,
+                    isDrawing: true
+                };
+            } else if (selectionBounds) {
+                // After drawing - return final bounds
+                return {
+                    active: true,
+                    startX: selectionBounds.x1,
+                    startY: selectionBounds.y1,
+                    endX: selectionBounds.x2,
+                    endY: selectionBounds.y2,
+                    isDrawing: false
+                };
+            }
         }
         return null;
+    }
+
+    /**
+     * Clear current selection
+     */
+    function clearSelection() {
+        selectionActive = false;
+        selectionBounds = null;
+    }
+
+    /**
+     * Check if there's an active selection
+     * @returns {boolean} True if selection is active
+     */
+    function hasSelection() {
+        return selectionActive && selectionBounds !== null;
+    }
+
+    /**
+     * Get selected pixel region
+     * @param {Array} pixelData - Canvas pixel data
+     * @returns {Array|null} Selected pixel data or null
+     */
+    function getSelectedPixels(pixelData) {
+        if (!hasSelection()) return null;
+
+        const selected = [];
+        for (let y = selectionBounds.y1; y <= selectionBounds.y2; y++) {
+            const row = [];
+            for (let x = selectionBounds.x1; x <= selectionBounds.x2; x++) {
+                if (y >= 0 && y < pixelData.length && x >= 0 && x < pixelData[0].length) {
+                    row.push(pixelData[y][x]);
+                } else {
+                    row.push(0);
+                }
+            }
+            selected.push(row);
+        }
+        return selected;
     }
 
     /**
@@ -615,6 +690,9 @@ const Tools = (function() {
         startDrawing,
         continueDrawing,
         endDrawing,
-        getSelectionData
+        getSelectionData,
+        clearSelection,
+        hasSelection,
+        getSelectedPixels
     };
 })();
