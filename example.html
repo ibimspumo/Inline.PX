@@ -109,7 +109,7 @@
 
 &lt;!-- Use the custom element --&gt;
 &lt;inline-px
-    data="16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000"
+    data="8x8:RLE:901101100133133101531015310013314013160140"
     scale="8"
     alt="Heart sprite"
 &gt;&lt;/inline-px&gt;</pre>
@@ -117,38 +117,40 @@
             <div class="sprite-showcase">
                 <div class="sprite-item">
                     <inline-px
-                        data="16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000"
+                        data="8x8:RLE:901101100133133101531015310013314013160140"
+                        scale="16"
+                        alt="Heart sprite"
+                    ></inline-px>
+                    <p><small>8×8 Heart at 16× scale</small></p>
+                </div>
+                <div class="sprite-item">
+                    <inline-px
+                        data="8x8:RLE:901101100133133101531015310013314013160140"
                         scale="8"
                         alt="Heart sprite"
                     ></inline-px>
-                    <p><small>Heart at 8× scale</small></p>
+                    <p><small>8×8 Heart at 8× scale</small></p>
                 </div>
                 <div class="sprite-item">
                     <inline-px
-                        data="16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000"
+                        data="8x8:RLE:901101100133133101531015310013314013160140"
                         scale="4"
                         alt="Heart sprite"
                     ></inline-px>
-                    <p><small>Heart at 4× scale</small></p>
-                </div>
-                <div class="sprite-item">
-                    <inline-px
-                        data="16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000"
-                        scale="2"
-                        alt="Heart sprite"
-                    ></inline-px>
-                    <p><small>Heart at 2× scale</small></p>
+                    <p><small>8×8 Heart at 4× scale</small></p>
                 </div>
             </div>
         </div>
 
         <div class="example">
-            <h3>With RLE Compression</h3>
-            <p>The custom element automatically handles compressed data:</p>
-            <pre>&lt;inline-px
-    data="16x16:RLE:16003B2B3B11B9B11B10B9B11B9B11B10B9B11B9B11B10B9B11B8B11B7B11B6B11B5B11B4B11B3B11B2B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B11B1B"
-    scale="4"
-&gt;&lt;/inline-px&gt;</pre>
+            <h3>Understanding the Format</h3>
+            <p>The data format is simple: <code>WIDTHxHEIGHT:RLE:DATA</code></p>
+            <ul>
+                <li><strong>8x8</strong> - Canvas size (8 pixels wide × 8 pixels tall)</li>
+                <li><strong>RLE</strong> - Run-Length Encoding compression (optional)</li>
+                <li><strong>Data</strong> - Base64 characters (0-9, A-Z, a-z, +, /) representing 64 colors</li>
+            </ul>
+            <p>Without compression, the format is: <code>WIDTHxHEIGHT:DATA</code></p>
         </div>
 
         <div class="note">
@@ -164,33 +166,270 @@
         </div>
     </div>
 
+    <!-- Use Cases -->
+    <div class="section">
+        <h2>Use Cases</h2>
+
+        <div class="example">
+            <h3>1. Game Development</h3>
+            <p>Store sprites directly in HTML without external image files:</p>
+            <pre>&lt;!-- Player sprite --&gt;
+&lt;inline-px data="8x8:RLE:..." scale="4" id="player"&gt;&lt;/inline-px&gt;
+
+&lt;!-- Enemy sprite --&gt;
+&lt;inline-px data="8x8:RLE:..." scale="4" id="enemy"&gt;&lt;/inline-px&gt;
+
+&lt;!-- Item sprite --&gt;
+&lt;inline-px data="8x8:RLE:..." scale="4" id="coin"&gt;&lt;/inline-px&gt;</pre>
+            <p><strong>Benefits:</strong> No HTTP requests, instant loading, version control friendly</p>
+        </div>
+
+        <div class="example">
+            <h3>2. UI Icons</h3>
+            <p>Ultra-compact icons for web apps:</p>
+            <pre>&lt;button&gt;
+    &lt;inline-px data="8x8:RLE:901101100133133101531015310013314013160140" scale="2"&gt;&lt;/inline-px&gt;
+    Like
+&lt;/button&gt;</pre>
+            <p><strong>Benefits:</strong> Crisp at any resolution, tiny file size, easy to customize</p>
+        </div>
+
+        <div class="example">
+            <h3>3. Documentation</h3>
+            <p>Embed pixel art examples in docs without image hosting:</p>
+            <pre>&lt;p&gt;The player sprite looks like this:
+    &lt;inline-px data="8x8:RLE:..." scale="3"&gt;&lt;/inline-px&gt;
+&lt;/p&gt;</pre>
+            <p><strong>Benefits:</strong> Self-contained documentation, works offline</p>
+        </div>
+
+        <div class="example">
+            <h3>4. Email Signatures</h3>
+            <p>Pixel art in HTML emails (data URIs work in email clients):</p>
+            <pre>&lt;!-- The custom element generates a data URI internally --&gt;
+&lt;inline-px data="8x8:RLE:901101100133133101531015310013314013160140" scale="2"&gt;&lt;/inline-px&gt;</pre>
+            <p><strong>Benefits:</strong> No external image hosting required</p>
+        </div>
+
+        <div class="example">
+            <h3>5. GitHub README</h3>
+            <p>Display pixel art in GitHub Pages or static sites:</p>
+            <pre>&lt;!-- Works on GitHub Pages --&gt;
+&lt;script src="https://your-site.github.io/inline-px.js"&gt;&lt;/script&gt;
+&lt;inline-px data="8x8:RLE:..." scale="8"&gt;&lt;/inline-px&gt;</pre>
+            <p><strong>Benefits:</strong> Static hosting friendly, no build process</p>
+        </div>
+
+        <div class="example">
+            <h3>6. NFT/Crypto Art</h3>
+            <p>Store pixel art metadata on-chain efficiently:</p>
+            <pre>// Ultra-compact format perfect for blockchain storage
+const metadata = {
+    name: "Heart NFT",
+    image_data: "8x8:RLE:901101100133133101531015310013314013160140"
+};</pre>
+            <p><strong>Benefits:</strong> Minimal gas costs, fully on-chain, human-readable</p>
+        </div>
+    </div>
+
     <!-- Advanced Examples -->
     <div class="section">
         <h2>Advanced Examples</h2>
 
         <div class="example">
             <h3>CSS Styling</h3>
-            <pre>inline-px {
-    display: inline-block;
-    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
-    transition: transform 0.2s;
-}
+            <pre>&lt;style&gt;
+    inline-px {
+        display: inline-block;
+        filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+        transition: transform 0.2s;
+    }
 
-inline-px:hover {
-    transform: scale(1.1);
-}</pre>
+    inline-px:hover {
+        transform: scale(1.1);
+    }
+
+    /* Animated sprite */
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+    }
+
+    .animated {
+        animation: pulse 1s infinite;
+    }
+&lt;/style&gt;
+
+&lt;inline-px
+    data="8x8:RLE:901101100133133101531015310013314013160140"
+    scale="4"
+    class="animated"
+&gt;&lt;/inline-px&gt;</pre>
         </div>
 
         <div class="example">
             <h3>JavaScript API</h3>
             <pre>// Create element dynamically
 const sprite = document.createElement('inline-px');
-sprite.setAttribute('data', '16x16:000...');
+sprite.setAttribute('data', '8x8:RLE:901101100133133101531015310013314013160140');
 sprite.setAttribute('scale', '4');
+sprite.setAttribute('alt', 'Heart icon');
 document.body.appendChild(sprite);
 
-// Update dynamically
-sprite.setAttribute('scale', '8');</pre>
+// Update dynamically (e.g., animation frames)
+let frame = 0;
+const frames = [
+    '8x8:RLE:901101100133133101531015310013314013160140',
+    '8x8:RLE:...' // Different frame
+];
+
+setInterval(() => {
+    sprite.setAttribute('data', frames[frame % frames.length]);
+    frame++;
+}, 200);
+
+// Change scale on click
+sprite.addEventListener('click', () => {
+    const currentScale = parseInt(sprite.getAttribute('scale'));
+    sprite.setAttribute('scale', currentScale === 4 ? 8 : 4);
+});</pre>
+        </div>
+
+        <div class="example">
+            <h3>Integration with Game Frameworks</h3>
+            <pre>// Phaser 3 - Load from inline-px element
+const spriteElement = document.querySelector('#player-sprite');
+const canvas = spriteElement.shadowRoot.querySelector('canvas');
+const texture = this.textures.addCanvas('player', canvas);
+
+// Three.js - Use as texture
+const spriteElement = document.querySelector('#texture-sprite');
+const canvas = spriteElement.shadowRoot.querySelector('canvas');
+const texture = new THREE.CanvasTexture(canvas);
+
+// Plain Canvas - Copy pixel data
+const spriteElement = document.querySelector('#sprite');
+const canvas = spriteElement.shadowRoot.querySelector('canvas');
+const ctx = myCanvas.getContext('2d');
+ctx.drawImage(canvas, x, y);</pre>
+        </div>
+
+        <div class="example">
+            <h3>Batch Loading with Fetch</h3>
+            <pre>// Load sprite library from JSON
+fetch('sprites.json')
+    .then(r => r.json())
+    .then(sprites => {
+        Object.entries(sprites).forEach(([name, data]) => {
+            const sprite = document.createElement('inline-px');
+            sprite.setAttribute('data', data);
+            sprite.setAttribute('scale', '4');
+            sprite.setAttribute('id', name);
+            document.getElementById('sprite-container').appendChild(sprite);
+        });
+    });
+
+// sprites.json:
+{
+    "heart": "8x8:RLE:901101100133133101531015310013314013160140",
+    "star": "8x8:RLE:...",
+    "coin": "8x8:RLE:..."
+}</pre>
+        </div>
+    </div>
+
+    <!-- Tips & Best Practices -->
+    <div class="section">
+        <h2>Tips & Best Practices</h2>
+
+        <div class="example">
+            <h3>Optimization Tips</h3>
+            <ul>
+                <li><strong>Use RLE compression</strong> - Can reduce size by 50-80% for sprites with solid areas</li>
+                <li><strong>Reuse colors</strong> - The 64-color palette is optimized for small file size</li>
+                <li><strong>Keep sprites small</strong> - 8×8 to 32×32 works best for ultra-compact storage</li>
+                <li><strong>Cache in localStorage</strong> - Store sprite data client-side for instant loading</li>
+                <li><strong>Use sprite sheets</strong> - Combine multiple sprites in one larger canvas</li>
+            </ul>
+        </div>
+
+        <div class="example">
+            <h3>Accessibility</h3>
+            <pre>&lt;!-- Always provide alt text --&gt;
+&lt;inline-px
+    data="8x8:RLE:901101100133133101531015310013314013160140"
+    scale="4"
+    alt="Red heart icon representing a life or health point"
+    role="img"
+&gt;&lt;/inline-px&gt;</pre>
+        </div>
+
+        <div class="example">
+            <h3>Performance</h3>
+            <ul>
+                <li><strong>Lazy load</strong> - Use Intersection Observer for off-screen sprites</li>
+                <li><strong>Reuse canvases</strong> - Access shadowRoot canvas for multiple uses</li>
+                <li><strong>Avoid excessive scale</strong> - Use CSS transform for temporary scaling</li>
+                <li><strong>Preload critical sprites</strong> - Include them in initial HTML</li>
+            </ul>
+        </div>
+
+        <div class="example">
+            <h3>Browser Support</h3>
+            <p>Requires browsers with Custom Elements v1 support:</p>
+            <ul>
+                <li>✓ Chrome/Edge 67+</li>
+                <li>✓ Firefox 63+</li>
+                <li>✓ Safari 10.1+</li>
+                <li>✓ Opera 54+</li>
+                <li>✓ All modern mobile browsers</li>
+            </ul>
+            <p>For older browsers, use a <a href="https://www.webcomponents.org/polyfills">polyfill</a>.</p>
+        </div>
+    </div>
+
+    <!-- Getting Started -->
+    <div class="section">
+        <h2>Getting Started</h2>
+
+        <div class="example">
+            <h3>1. Download inline-px.js</h3>
+            <p>Grab the standalone JavaScript file from the repository.</p>
+        </div>
+
+        <div class="example">
+            <h3>2. Create Your Pixel Art</h3>
+            <p>Use the Inline.px editor (index.html) to create your sprites:</p>
+            <ul>
+                <li>Open <code>index.html</code> in your browser</li>
+                <li>Draw your pixel art</li>
+                <li>Copy the export string from the bottom panel</li>
+                <li>The string includes RLE compression automatically</li>
+            </ul>
+        </div>
+
+        <div class="example">
+            <h3>3. Use in Your Project</h3>
+            <pre>&lt;!-- Add to your HTML --&gt;
+&lt;script src="inline-px.js"&gt;&lt;/script&gt;
+
+&lt;inline-px
+    data="YOUR_EXPORTED_STRING_HERE"
+    scale="4"
+&gt;&lt;/inline-px&gt;</pre>
+        </div>
+
+        <div class="example">
+            <h3>4. Customize & Style</h3>
+            <p>Style with CSS like any other element:</p>
+            <pre>inline-px {
+    cursor: pointer;
+    margin: 10px;
+}
+
+inline-px:hover {
+    filter: brightness(1.2);
+}</pre>
         </div>
     </div>
 
