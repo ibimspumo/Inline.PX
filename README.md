@@ -1,430 +1,511 @@
 # Inline.px 🎨
 
-**Ultra-compact pixel art with on-the-fly PNG generation.**
+**Ultra-compact pixel art format with zero-dependency client-side rendering.**
 
-Inline.px is a professional browser-based pixel art editor that generates incredibly small file sizes using a custom Base64 encoding system. It includes a custom HTML element and PNG generation server for seamless integration anywhere. Perfect for game developers who need to store sprites, icons, and textures in minimal space.
-
----
-
-## ✨ Why Inline.px?
-
-### 🎯 Ultra-Compact Storage
-Traditional image formats are bloated. Inline.px uses a revolutionary **Base64 encoding system** that produces tiny text strings:
-
-- **16×16 sprite**: Only **260 characters** (~260 bytes)
-- **32×32 icon**: Only **1,030 characters** (~1 KB)
-- **64×64 texture**: Only **4,100 characters** (~4 KB)
-
-Compare this to PNG files which are typically **5-10× larger**!
-
-### 📦 Perfect for Game Development
-
-- **Embed directly in code** - No external files needed
-- **Store in databases** - Just a text field
-- **Version control friendly** - Easy to diff and merge
-- **No loading delays** - Instant rendering
-- **Cross-platform** - Works everywhere text works
+Inline.px is a complete pixel art solution for developers: a professional browser-based editor that generates incredibly small text strings, plus a standalone JavaScript library (`inline-px.js`) for rendering them anywhere. Perfect for game developers, web apps, and anyone who needs to store and display pixel art efficiently.
 
 ---
 
-## 🚀 Features
+## 🚀 Quick Start for Developers
 
-### Professional Tools
-- **11 Drawing Tools**: Brush, Pencil, Eraser, Line, Rectangle, Ellipse, Fill, Select, Magic Wand, Move, Hand
-- **64 Colors**: Curated palette with Base64 encoding (0-9, A-Z, a-z, +, /)
-- **Adjustable Brush Sizes**: 1px, 2px, 3px, 5px
-- **Shape Modes**: Fill and Stroke for rectangles and ellipses
+### Drop-in Integration (Recommended)
 
-### Advanced Features
-- **Multi-Tab Workspace**: Work on multiple sprites simultaneously (Photoshop-style)
-- **Autosave System**: Never lose your work with automatic saving (every 30s)
-- **Zoom & Pan**: 10%-1000% zoom with smooth panning and hand tool
-- **RLE Compression**: Optional compression with savings preview (50-80% smaller)
-- **PNG Export**: Export as PNG with multiple scale options (1×, 2×, 4×, 8×)
-- **Real-Time Export**: See your export string update as you draw
-- **LocalStorage Integration**: Save/load projects in your browser
-
-### Modern Interface
-- **Dark Theme**: Professional design easy on the eyes
-- **Material Symbols Icons**: Modern, crisp icon system from Google
-- **Keyboard Shortcuts**: Fast workflow with hotkeys for every tool
-- **Responsive Design**: Works on desktop and mobile
-- **Custom Dialogs**: Beautiful, consistent UI (no browser popups)
-
----
-
-## 📖 How It Works
-
-### The Format
-
-PixelCreator Pro exports pixel art as a simple text string:
-
-```
-WxH:BASE64DATA
-```
-
-**Example:** A 16×16 red heart icon
-```
-16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000
-```
-
-This represents a full 16×16 sprite in just **260 characters**!
-
-### Optional RLE Compression
-
-For sprites with repeated pixels, you can enable RLE (Run-Length Encoding) compression:
-
-```
-WxH:RLE:COMPRESSED_DATA
-```
-
-**Example:** Same heart with compression
-```
-16x16:RLE:16(0)3B2(0)B3(0)B11(1)B9(1)B11(1)B10(1)B9(1)B...
-```
-
-This can reduce file size by **50-80%** for sprites with large solid areas! The editor shows you the exact savings and a before/after preview.
-
-### Encoding System
-
-- **Character `0`**: Transparent pixel
-- **Characters `1-9, A-Z, a-z, +, /`**: 63 colors
-- Each character = 1 pixel
-- Total palette: 64 colors (6-bit color depth)
-
----
-
-## 🚀 Easy Integration - Standalone Client-Side
-
-Just include one JavaScript file and use the `<inline-px>` custom element:
+Just include one file and start using pixel art:
 
 ```html
-<!-- Include the standalone script (no dependencies!) -->
+<!-- 1. Include the standalone library (6KB, zero dependencies) -->
 <script src="inline-px.js"></script>
 
-<!-- Use anywhere in your HTML -->
+<!-- 2. Use the custom element anywhere -->
 <inline-px
-    data="16x16:0000000000000000003BB00BB3000000B11111111B..."
+    data="8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040"
     scale="8"
     alt="Heart sprite"
 ></inline-px>
 ```
 
-**Features:**
-- ✓ **Zero dependencies** - pure vanilla JavaScript
-- ✓ **No server required** - works on static sites (GitHub Pages, Netlify, etc.)
-- ✓ **Automatic RLE compression** support
-- ✓ **Crisp pixel-perfect rendering** with proper CSS
-- ✓ **Shadow DOM isolation** - no style conflicts
-- ✓ **Copy & paste ready** - drop `inline-px.js` into any project
+**That's it!** The library handles:
+- ✅ Automatic RLE decompression
+- ✅ Pixel-perfect rendering
+- ✅ Proper CSS for crisp scaling
+- ✅ Shadow DOM isolation (no style conflicts)
+- ✅ Dynamic attribute updates
 
-**Attributes:**
-- `data` - Your pixel art string (WxH:DATA or WxH:RLE:DATA)
-- `scale` - Image scale multiplier (default: 1)
-- `alt` - Alternative text for accessibility
-- `class` - CSS classes for styling
+### Installation Options
+
+**Option 1: Direct Download**
+```bash
+# Download inline-px.js from this repo
+curl -O https://raw.githubusercontent.com/your-repo/inline.px/main/inline-px.js
+```
+
+**Option 2: Copy & Paste**
+- Copy `inline-px.js` into your project
+- Works with static sites, GitHub Pages, Netlify, Vercel, etc.
+- No build step required
 
 ---
 
-## 💻 Integration Examples
+## 📖 Developer Guide
 
-### JavaScript/HTML5 Canvas
+### The `<inline-px>` Custom Element
+
+The standalone library registers a Web Component that renders pixel art strings as PNG images.
+
+#### Attributes
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `data` | String | Required | Pixel art string (formats: `WxH:DATA` or `WxH:RLE:DATA`) |
+| `scale` | Number | `1` | Scale multiplier (1-32) |
+| `alt` | String | `"Inline.px pixel art"` | Alt text for accessibility |
+| `class` | String | - | CSS classes for additional styling |
+
+#### Basic Usage
+
+```html
+<!-- Standard format -->
+<inline-px
+    data="16x16:0000000000000000003BB00BB3000000B11111111B00000B111111111B0000B11111111111B000B111111111111B00B11111111111111B0B111111111111111B0B111111111111111B00B11111111111111B000B111111111111B0000B11111111111B00000B111111111B000000B11111111B0000000B111111B00000000B11111B000000000B111B0000000000BBB00000000000000000000000"
+    scale="4"
+></inline-px>
+
+<!-- RLE compressed format (50-80% smaller for sprites with solid areas) -->
+<inline-px
+    data="8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040"
+    scale="8"
+></inline-px>
+```
+
+#### Dynamic Updates
+
+The element automatically re-renders when attributes change:
 
 ```javascript
-/**
- * Parse and render PixelCreator Pro format
- * Supports both standard and RLE-compressed formats
- */
-function parsePixelArt(dataString) {
-    const parts = dataString.split(':');
-    const [width, height] = parts[0].split('x').map(Number);
+const sprite = document.querySelector('inline-px');
 
-    let data;
-    if (parts[1] === 'RLE') {
-        // Decompress RLE format
-        data = decompressRLE(parts[2]);
-    } else {
-        // Standard format
-        data = parts[1];
+// Change sprite data
+sprite.setAttribute('data', '16x16:0000...');
+
+// Change scale
+sprite.setAttribute('scale', '8');
+
+// Swap between different sprites
+sprite.setAttribute('data', spriteDatabase.playerIdle);
+```
+
+#### Error Handling
+
+The element displays error messages for invalid data:
+
+```html
+<!-- Missing data attribute -->
+<inline-px scale="4"></inline-px>
+<!-- Renders: "Missing 'data' attribute" -->
+
+<!-- Invalid format -->
+<inline-px data="invalid"></inline-px>
+<!-- Renders: "Invalid pixel art data" -->
+```
+
+---
+
+## 🎮 Integration Examples
+
+### Vanilla JavaScript Game
+
+```javascript
+// Sprite system using inline-px
+class SpriteManager {
+    constructor() {
+        this.sprites = {
+            player: {
+                idle: '16x16:RLE:090011010011020011011011011...',
+                walk: '16x16:RLE:090011010011020011011011011...',
+                jump: '16x16:RLE:090011010011020011011011011...'
+            },
+            enemy: {
+                slime: '16x16:RLE:090011010011020011011011011...'
+            }
+        };
     }
 
-    return { width, height, data };
-}
+    render(container, spritePath, scale = 1) {
+        const [category, name] = spritePath.split('.');
+        const data = this.sprites[category]?.[name];
 
-/**
- * Decompress RLE format
- * Format: "16(0)" means 16 repetitions of character '0'
- */
-function decompressRLE(compressed) {
-    let decompressed = '';
-    let i = 0;
-
-    while (i < compressed.length) {
-        // Check if we have a number (run length)
-        if (/\d/.test(compressed[i])) {
-            let numStr = '';
-            while (i < compressed.length && /\d/.test(compressed[i])) {
-                numStr += compressed[i];
-                i++;
-            }
-            const count = parseInt(numStr);
-            const char = compressed[i];
-            decompressed += char.repeat(count);
-            i++;
-        } else {
-            // Single character
-            decompressed += compressed[i];
-            i++;
+        if (!data) {
+            console.error(`Sprite not found: ${spritePath}`);
+            return null;
         }
+
+        const element = document.createElement('inline-px');
+        element.setAttribute('data', data);
+        element.setAttribute('scale', scale);
+        element.setAttribute('alt', `${category} ${name}`);
+        container.appendChild(element);
+
+        return element;
     }
 
-    return decompressed;
-}
-
-/**
- * Base64 character to color palette
- */
-const PALETTE = {
-    '0': null,              // Transparent
-    '1': '#000000',         // Black
-    '2': '#FFFFFF',         // White
-    '3': '#FF0000',         // Red
-    '4': '#00FF00',         // Green
-    '5': '#0000FF',         // Blue
-    // ... add all 64 colors from the palette
-};
-
-/**
- * Render pixel art to canvas
- */
-function renderPixelArt(dataString, canvas, scale = 1) {
-    const { width, height, data } = parsePixelArt(dataString);
-    const ctx = canvas.getContext('2d');
-
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            const index = y * width + x;
-            const char = data[index];
-            const color = PALETTE[char];
-
-            if (color) {  // Skip transparent pixels
-                ctx.fillStyle = color;
-                ctx.fillRect(x * scale, y * scale, scale, scale);
-            }
+    updateAnimation(element, spritePath) {
+        const [category, name] = spritePath.split('.');
+        const data = this.sprites[category]?.[name];
+        if (data) {
+            element.setAttribute('data', data);
         }
     }
 }
 
 // Usage
-const spriteData = "16x16:0000000000000000003BB00BB300...";
-const canvas = document.getElementById('myCanvas');
-renderPixelArt(spriteData, canvas, 4);  // Render at 4× scale
+const spriteManager = new SpriteManager();
+const gameCanvas = document.getElementById('game');
+
+// Render player
+const player = spriteManager.render(gameCanvas, 'player.idle', 4);
+
+// Animate player
+setInterval(() => {
+    spriteManager.updateAnimation(player, 'player.walk');
+}, 100);
 ```
 
-### Game Engine Integration (Phaser Example)
+### React Component Wrapper
 
-```javascript
-class PixelArtSprite {
-    constructor(scene, x, y, dataString, scale = 1) {
-        this.scene = scene;
-        this.parse(dataString);
-        this.scale = scale;
+```jsx
+import React from 'react';
 
-        // Create texture from pixel data
-        this.createTexture();
-
-        // Create sprite
-        this.sprite = scene.add.sprite(x, y, this.textureKey);
-        this.sprite.setScale(scale);
-    }
-
-    parse(dataString) {
-        const [dimensions, data] = dataString.split(':');
-        const [width, height] = dimensions.split('x').map(Number);
-
-        this.width = width;
-        this.height = height;
-        this.data = data;
-        this.textureKey = 'pixel_' + Date.now();
-    }
-
-    createTexture() {
-        const canvas = document.createElement('canvas');
-        canvas.width = this.width;
-        canvas.height = this.height;
-        const ctx = canvas.getContext('2d');
-
-        // Render each pixel
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                const index = y * this.width + x;
-                const char = this.data[index];
-                const color = this.getColor(char);
-
-                if (color) {
-                    ctx.fillStyle = color;
-                    ctx.fillRect(x, y, 1, 1);
-                }
-            }
-        }
-
-        // Add texture to game
-        this.scene.textures.addCanvas(this.textureKey, canvas);
-    }
-
-    getColor(char) {
-        // Your color palette mapping
-        const palette = { '0': null, '1': '#000000', /* ... */ };
-        return palette[char];
-    }
+/**
+ * React wrapper for <inline-px> element
+ */
+function PixelArt({ data, scale = 1, alt = 'Pixel art', className, style }) {
+    return (
+        <inline-px
+            data={data}
+            scale={scale}
+            alt={alt}
+            class={className}
+            style={style}
+        />
+    );
 }
 
-// Usage in Phaser scene
-const playerSprite = new PixelArtSprite(
-    this,
-    100,
-    100,
-    "16x16:0000000000000000003BB00BB300...",
-    3  // 3× scale
-);
+// Usage
+function App() {
+    const [currentFrame, setCurrentFrame] = React.useState(0);
+
+    const frames = [
+        '8x8:RLE:090021010021020011023011023...',
+        '8x8:RLE:090021010021020011023011023...',
+        '8x8:RLE:090021010021020011023011023...'
+    ];
+
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentFrame(prev => (prev + 1) % frames.length);
+        }, 200);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div>
+            <h1>Animated Sprite</h1>
+            <PixelArt
+                data={frames[currentFrame]}
+                scale={8}
+                alt="Animated heart"
+            />
+        </div>
+    );
+}
+```
+
+### Vue Component
+
+```vue
+<template>
+    <inline-px
+        :data="spriteData"
+        :scale="scale"
+        :alt="alt"
+        :class="className"
+    />
+</template>
+
+<script>
+export default {
+    name: 'PixelArt',
+    props: {
+        data: {
+            type: String,
+            required: true
+        },
+        scale: {
+            type: Number,
+            default: 1
+        },
+        alt: {
+            type: String,
+            default: 'Pixel art'
+        },
+        className: String
+    }
+}
+</script>
+
+<!-- Usage -->
+<template>
+    <div>
+        <PixelArt
+            :data="playerSprite"
+            :scale="4"
+            alt="Player character"
+        />
+    </div>
+</template>
+
+<script>
+export default {
+    data() {
+        return {
+            playerSprite: '16x16:RLE:090011010011020011011011011...'
+        }
+    }
+}
+</script>
 ```
 
 ### Database Storage
 
+Store sprites efficiently in any database as text:
+
 ```sql
--- Store sprites in a database
+-- SQL Schema
 CREATE TABLE sprites (
     id INTEGER PRIMARY KEY,
-    name VARCHAR(255),
-    data TEXT,
+    name VARCHAR(255) UNIQUE,
+    category VARCHAR(100),
+    data TEXT NOT NULL,
     width INTEGER,
     height INTEGER,
-    created_at TIMESTAMP
+    compressed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert a sprite (incredibly small storage!)
-INSERT INTO sprites (name, data, width, height) VALUES (
-    'player_idle',
-    '16x16:0000000000000000003BB00BB300...',
-    16,
-    16
-);
+-- Insert sprites (incredibly small storage!)
+INSERT INTO sprites (name, category, data, width, height, compressed) VALUES
+    ('heart', 'icons', '8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040', 8, 8, true),
+    ('player_idle', 'characters', '16x16:0000000000000000003BB00BB3000000B11111111B...', 16, 16, false);
+
+-- Retrieve and render
+SELECT data FROM sprites WHERE name = 'heart';
 ```
 
-### JSON Game Assets
+```javascript
+// Frontend rendering from database
+async function renderSpriteFromDB(spriteName, container, scale = 1) {
+    const response = await fetch(`/api/sprites/${spriteName}`);
+    const sprite = await response.json();
 
-```json
-{
-  "sprites": {
-    "player": {
-      "idle": "16x16:0000000000000000003BB00BB300...",
-      "walk": "16x16:0000000000000000003BB00BB300...",
-      "jump": "16x16:0000000000000000003BB00BB300..."
-    },
-    "enemies": {
-      "slime": "16x16:00000000BB00BB0000...",
-      "bat": "16x16:0000B000000B000000..."
-    },
-    "tiles": {
-      "grass": "8x8:4444444444444444...",
-      "stone": "8x8:7777777777777777..."
-    }
-  }
-}
-```
-
-### React Component
-
-```jsx
-import React, { useEffect, useRef } from 'react';
-
-function PixelArtImage({ dataString, scale = 1 }) {
-    const canvasRef = useRef(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const [dimensions, data] = dataString.split(':');
-        const [width, height] = dimensions.split('x').map(Number);
-
-        canvas.width = width * scale;
-        canvas.height = height * scale;
-
-        const ctx = canvas.getContext('2d');
-        const palette = getPalette();  // Your color palette
-
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const index = y * width + x;
-                const color = palette[data[index]];
-
-                if (color) {
-                    ctx.fillStyle = color;
-                    ctx.fillRect(x * scale, y * scale, scale, scale);
-                }
-            }
-        }
-    }, [dataString, scale]);
-
-    return <canvas ref={canvasRef} />;
+    const element = document.createElement('inline-px');
+    element.setAttribute('data', sprite.data);
+    element.setAttribute('scale', scale);
+    element.setAttribute('alt', sprite.name);
+    container.appendChild(element);
 }
 
 // Usage
-<PixelArtImage
-    dataString="16x16:0000000000000000003BB00BB300..."
-    scale={4}
-/>
+renderSpriteFromDB('heart', document.getElementById('sprites'), 8);
 ```
 
-### Node.js / Server-Side Rendering
+### JSON Asset Bundle
 
-```javascript
-const { createCanvas } = require('canvas');
-const fs = require('fs');
+Perfect for games and apps that need to bundle sprites:
 
-function renderPixelArtToPNG(dataString, outputPath, scale = 1) {
-    const [dimensions, data] = dataString.split(':');
-    const [width, height] = dimensions.split('x').map(Number);
-
-    const canvas = createCanvas(width * scale, height * scale);
-    const ctx = canvas.getContext('2d');
-
-    const palette = getPalette();
-
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            const index = y * width + x;
-            const color = palette[data[index]];
-
-            if (color) {
-                ctx.fillStyle = color;
-                ctx.fillRect(x * scale, y * scale, scale, scale);
+```json
+{
+    "version": "1.0",
+    "sprites": {
+        "ui": {
+            "heart_full": {
+                "data": "8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040",
+                "width": 8,
+                "height": 8,
+                "tags": ["ui", "health"]
+            },
+            "heart_empty": {
+                "data": "8x8:RLE:090021010021020011013011013011010011003011010011003011020011013011040011013011060011040",
+                "width": 8,
+                "height": 8,
+                "tags": ["ui", "health"]
+            }
+        },
+        "characters": {
+            "player_idle": {
+                "data": "16x16:0000000000000000003BB00BB3000000B11111111B...",
+                "width": 16,
+                "height": 16,
+                "tags": ["player", "animation"]
             }
         }
     }
+}
+```
 
-    // Save as PNG
-    const buffer = canvas.toBuffer('image/png');
-    fs.writeFileSync(outputPath, buffer);
+```javascript
+// Asset loader
+class AssetLoader {
+    async load(url) {
+        const response = await fetch(url);
+        this.assets = await response.json();
+    }
+
+    getSprite(category, name) {
+        return this.assets.sprites[category]?.[name]?.data;
+    }
+
+    render(category, name, container, scale = 1) {
+        const data = this.getSprite(category, name);
+        if (!data) return null;
+
+        const element = document.createElement('inline-px');
+        element.setAttribute('data', data);
+        element.setAttribute('scale', scale);
+        container.appendChild(element);
+        return element;
+    }
 }
 
-// Convert to PNG for traditional use
-renderPixelArtToPNG(
-    "16x16:0000000000000000003BB00BB300...",
-    "sprite.png",
-    8  // 8× scale for crisp pixels
-);
+// Usage
+const loader = new AssetLoader();
+await loader.load('assets/sprites.json');
+
+const gameUI = document.getElementById('game-ui');
+loader.render('ui', 'heart_full', gameUI, 4);
+loader.render('characters', 'player_idle', gameUI, 4);
+```
+
+### Local Storage / IndexedDB
+
+```javascript
+// Save sprite to localStorage
+function saveSprite(name, data) {
+    const sprites = JSON.parse(localStorage.getItem('sprites') || '{}');
+    sprites[name] = data;
+    localStorage.setItem('sprites', JSON.stringify(sprites));
+}
+
+// Load and render
+function loadSprite(name, container, scale = 1) {
+    const sprites = JSON.parse(localStorage.getItem('sprites') || '{}');
+    const data = sprites[name];
+
+    if (!data) return null;
+
+    const element = document.createElement('inline-px');
+    element.setAttribute('data', data);
+    element.setAttribute('scale', scale);
+    container.appendChild(element);
+    return element;
+}
+
+// IndexedDB for larger collections
+class SpriteDatabase {
+    async init() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('SpriteDB', 1);
+
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                this.db = request.result;
+                resolve();
+            };
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('sprites')) {
+                    const store = db.createObjectStore('sprites', { keyPath: 'name' });
+                    store.createIndex('category', 'category', { unique: false });
+                }
+            };
+        });
+    }
+
+    async saveSprite(name, category, data) {
+        const tx = this.db.transaction(['sprites'], 'readwrite');
+        const store = tx.objectStore('sprites');
+        await store.put({ name, category, data, timestamp: Date.now() });
+    }
+
+    async getSprite(name) {
+        const tx = this.db.transaction(['sprites'], 'readonly');
+        const store = tx.objectStore('sprites');
+        return new Promise((resolve, reject) => {
+            const request = store.get(name);
+            request.onsuccess = () => resolve(request.result?.data);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async render(name, container, scale = 1) {
+        const data = await this.getSprite(name);
+        if (!data) return null;
+
+        const element = document.createElement('inline-px');
+        element.setAttribute('data', data);
+        element.setAttribute('scale', scale);
+        container.appendChild(element);
+        return element;
+    }
+}
 ```
 
 ---
 
-## 🎮 Complete Color Palette
+## 📐 Format Specification
 
-The full 64-color palette is available in the editor. Here's the mapping:
+### Standard Format
+
+```
+WxH:DATA
+```
+
+- `W` = Width (2-128 pixels)
+- `H` = Height (2-128 pixels)
+- `DATA` = Base64-encoded pixel data (exactly W×H characters)
+
+**Example:** `8x8:0000000001101100133133101531015310013314013160140`
+
+### RLE Compressed Format
+
+```
+WxH:RLE:COMPRESSED_DATA
+```
+
+**RLE Encoding:** Fixed 2-digit COUNT + 1 CHAR format
+- Each run is exactly 3 characters: `CCCHAR`
+- `CC` = 2-digit count (01-99) with leading zeros
+- `CHAR` = Base64 character to repeat
+
+**Examples:**
+- `03a` = "aaa" (3 repetitions of 'a')
+- `15B` = "BBBBBBBBBBBBBBB" (15 repetitions of 'B')
+- `01x` = "x" (1 repetition of 'x')
+
+**Full Example:**
+`8x8:RLE:090021010021020011023011023011010011053011010011053011020011033011040011013011060011040`
+
+**Decompression:**
+```
+09 0 = "000000000" (9 zeros)
+02 1 = "11" (2 ones)
+01 0 = "0" (1 zero)
+...
+```
+
+### Color Palette
+
+64 colors mapped to Base64 characters `0-9A-Za-z+/`:
 
 ```javascript
 const PALETTE = [
@@ -438,261 +519,330 @@ const PALETTE = [
     '#FF00FF',   // 7: Magenta
     '#00FFFF',   // 8: Cyan
     '#FFA500',   // 9: Orange
-
-    // Grayscale (A-J)
-    '#1a1a1a',   // A: Gray 10%
-    '#333333',   // B: Gray 20%
-    '#4d4d4d',   // C: Gray 30%
-    '#666666',   // D: Gray 40%
-    '#808080',   // E: Gray 50%
-    '#999999',   // F: Gray 60%
-    '#b3b3b3',   // G: Gray 70%
-    '#cccccc',   // H: Gray 80%
-    '#e6e6e6',   // I: Gray 90%
-    '#f5f5f5',   // J: Gray 95%
-
-    // Reds (K-O)
-    '#8B0000',   // K: Dark Red
-    '#DC143C',   // L: Crimson
-    '#FF6347',   // M: Tomato
-    '#FFA07A',   // N: Light Salmon
-    '#FFB6C1',   // O: Light Pink
-
-    // Greens (P-T)
-    '#006400',   // P: Dark Green
-    '#228B22',   // Q: Forest Green
-    '#32CD32',   // R: Lime Green
-    '#90EE90',   // S: Light Green
-    '#98FB98',   // T: Pale Green
-
-    // Blues (U-Y)
-    '#00008B',   // U: Dark Blue
-    '#4169E1',   // V: Royal Blue
-    '#1E90FF',   // W: Dodger Blue
-    '#87CEEB',   // X: Sky Blue
-    '#ADD8E6',   // Y: Light Blue
-
-    // Purples (Z-d)
-    '#4B0082',   // Z: Indigo
-    '#8B008B',   // a: Dark Magenta
-    '#9370DB',   // b: Medium Purple
-    '#BA55D3',   // c: Medium Orchid
-    '#DDA0DD',   // d: Plum
-
-    // Browns/Earth (e-i)
-    '#8B4513',   // e: Saddle Brown
-    '#A0522D',   // f: Sienna
-    '#D2691E',   // g: Chocolate
-    '#CD853F',   // h: Peru
-    '#DEB887',   // i: Burlywood
-
-    // Pastels (j-n)
-    '#FFE4E1',   // j: Misty Rose
-    '#FFE4B5',   // k: Moccasin
-    '#FAFAD2',   // l: Light Goldenrod
-    '#E0FFFF',   // m: Light Cyan
-    '#E6E6FA',   // n: Lavender
-
-    // Additional Colors (o-s)
-    '#FF1493',   // o: Deep Pink
-    '#FF8C00',   // p: Dark Orange
-    '#FFD700',   // q: Gold
-    '#ADFF2F',   // r: Green Yellow
-    '#00CED1',   // s: Dark Turquoise
-
-    // More Colors (t-x)
-    '#9400D3',   // t: Dark Violet
-    '#8B4789',   // u: Purple
-    '#2F4F4F',   // v: Dark Slate Gray
-    '#708090',   // w: Slate Gray
-    '#BC8F8F',   // x: Rosy Brown
-
-    // Final Colors (y-/)
-    '#F0E68C',   // y: Khaki
-    '#EEE8AA',   // z: Pale Goldenrod
-    '#F5DEB3',   // +: Wheat
-    '#FFDAB9'    // /: Peach Puff
+    // ... 54 more colors (see inline-px.js for full palette)
 ];
+```
+
+**Character Mapping:**
+- `0` = Transparent (index 0)
+- `1-9` = First 9 colors (indices 1-9)
+- `A-Z` = Next 26 colors (indices 10-35)
+- `a-z` = Next 26 colors (indices 36-61)
+- `+` = Index 62
+- `/` = Index 63
+
+---
+
+## 🛠️ Advanced Usage
+
+### Manual Decompression (Without Custom Element)
+
+If you need to parse the format yourself:
+
+```javascript
+/**
+ * Decompress RLE format manually
+ */
+function decompressRLE(compressed) {
+    let decompressed = '';
+    let i = 0;
+
+    while (i < compressed.length) {
+        if (i + 2 < compressed.length) {
+            const countStr = compressed.substring(i, i + 2);
+            const count = parseInt(countStr);
+            const char = compressed[i + 2];
+            decompressed += char.repeat(count);
+            i += 3; // Skip 2-digit count + 1 char
+        } else {
+            break; // Malformed data
+        }
+    }
+
+    return decompressed;
+}
+
+/**
+ * Parse pixel art data string
+ */
+function parsePixelArt(dataString) {
+    const parts = dataString.split(':');
+    const [width, height] = parts[0].split('x').map(Number);
+
+    let data;
+    if (parts[1] === 'RLE') {
+        data = decompressRLE(parts[2]);
+    } else {
+        data = parts[1];
+    }
+
+    return { width, height, data };
+}
+
+// Usage
+const { width, height, data } = parsePixelArt('8x8:RLE:090021010...');
+console.log(`Size: ${width}×${height}, Data length: ${data.length}`);
+```
+
+### Custom Canvas Rendering
+
+```javascript
+function renderToCanvas(dataString, canvas, scale = 1) {
+    const { width, height, data } = parsePixelArt(dataString);
+
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    const BASE64_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/';
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const index = y * width + x;
+            const char = data[index];
+            const colorIndex = BASE64_CHARS.indexOf(char);
+            const color = PALETTE[colorIndex];
+
+            if (color) {
+                ctx.fillStyle = color;
+                ctx.fillRect(x * scale, y * scale, scale, scale);
+            }
+        }
+    }
+
+    return canvas;
+}
+```
+
+### Server-Side Rendering (Node.js)
+
+```javascript
+// Using node-canvas
+const { createCanvas } = require('canvas');
+const fs = require('fs');
+
+function renderPixelArtToPNG(dataString, outputPath, scale = 1) {
+    const { width, height, data } = parsePixelArt(dataString);
+
+    const canvas = createCanvas(width * scale, height * scale);
+    const ctx = canvas.getContext('2d');
+
+    // ... render pixels (same as browser)
+
+    const buffer = canvas.toBuffer('image/png');
+    fs.writeFileSync(outputPath, buffer);
+}
+
+// Generate PNG files from sprite database
+renderPixelArtToPNG(
+    '8x8:RLE:090021010021020011023011023...',
+    'heart.png',
+    8
+);
 ```
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## ✨ Why Inline.px?
 
-### Tools
-- `B` - Brush
-- `P` - Pencil
-- `E` - Eraser
-- `L` - Line
-- `R` - Rectangle
-- `O` - Ellipse (Circle)
-- `F` - Fill
-- `M` - Select (Marquee)
-- `W` - Magic Wand
-- `V` - Move
-- `H` - Hand (Pan)
+### Ultra-Compact Storage
 
-### File Operations
-- `Ctrl/Cmd + N` - New Tab/Document
-- `Ctrl/Cmd + S` - Save
-- `Ctrl/Cmd + O` - Load
+Traditional image formats are bloated. Inline.px produces tiny text strings:
 
-### Viewport
-- `Ctrl/Cmd + +` - Zoom In
-- `Ctrl/Cmd + -` - Zoom Out
-- `Ctrl/Cmd + 0` - Reset View
-- `Space + Drag` - Pan Canvas
+| Size | Standard | RLE Compressed |
+|------|----------|----------------|
+| **8×8** | ~64 bytes | ~30-50 bytes |
+| **16×16** | ~256 bytes | ~100-150 bytes |
+| **32×32** | ~1 KB | ~400-600 bytes |
+| **64×64** | ~4 KB | ~1.5-2.5 KB |
 
----
+**RLE compression** saves 50-80% for sprites with solid areas!
 
-## 🚀 Getting Started
+### Perfect for Developers
 
-### Installation
+- ✅ **Embed directly in code** - No external files
+- ✅ **Store in databases** - Just text, no BLOB handling
+- ✅ **Version control friendly** - Easy to diff and merge
+- ✅ **No loading delays** - Instant rendering
+- ✅ **Cross-platform** - Works everywhere text works
+- ✅ **Zero dependencies** - Pure vanilla JavaScript
+- ✅ **No build step** - Drop in and use
 
-1. Clone or download this repository
-2. Open `index.html` in a modern web browser
-3. Start creating pixel art!
-
-**No build process, no dependencies, no server required!**
-
-### Quick Start
-
-1. **Select a tool** - Click a tool or use keyboard shortcuts (B, P, E, L, etc.)
-2. **Choose a color** - Click on the color palette (64 colors available)
-3. **Draw** - Click and drag on the canvas
-4. **Export** - Click "Export" to choose your export format
-5. **Choose Format**:
-   - **Copy String** - Copy the text string to clipboard
-   - **Download TXT** - Save as a text file
-   - **Download PNG** - Export as a pixel-perfect PNG image (1×, 2×, 4×, 8× scale)
-6. **Optional Compression** - Enable RLE compression to reduce file size by 50-80%
-
-### Tips for Smallest File Sizes
-
-- Use **transparent background** (color 0) wherever possible
-- Stick to a **limited color palette** - fewer unique colors = better compression potential
-- Use **smaller dimensions** when possible (8×8, 16×16, 32×32)
-- Consider creating **tile sets** instead of large images
-- Enable **RLE compression** for sprites with repeated colors (the editor will show you if it helps)
-
----
-
-## 📊 Size Comparisons
+### Size Comparisons
 
 | Format | 16×16 | 32×32 | 64×64 |
 |--------|-------|-------|-------|
-| **PixelCreator Pro** | ~260 bytes | ~1 KB | ~4 KB |
+| **Inline.px (Standard)** | ~260 bytes | ~1 KB | ~4 KB |
+| **Inline.px (RLE)** | ~100-150 bytes | ~400-600 bytes | ~1.5-2.5 KB |
 | **PNG (indexed)** | ~150-300 bytes | ~500-800 bytes | ~2-4 KB |
 | **PNG (RGBA)** | ~400-800 bytes | ~1.5-3 KB | ~6-12 KB |
-| **BMP** | ~1 KB | ~4 KB | ~16 KB |
-| **GIF** | ~300-500 bytes | ~1-2 KB | ~4-8 KB |
 
-**Note**: PixelCreator Pro format excels when:
-- Embedding directly in code (no Base64 encoding overhead)
-- Storing in databases (no binary blob handling)
-- Version control (text diffs work perfectly)
-- Simple parsing (no image library required)
+**When Inline.px wins:**
+- Embedding in code (no Base64 overhead)
+- Database storage (no binary handling)
+- Version control (readable text diffs)
+- Simple parsing (no image library needed)
 
 ---
 
-## 🏗️ Architecture
+## 🎨 The Editor
 
-### Modular JavaScript
-- `dialogs.js` - Custom dialog system with Material Symbols
-- `compression.js` - RLE compression/decompression
-- `pngExport.js` - PNG export functionality
-- `colorPalette.js` - 64-color palette management
-- `tools.js` - 11 professional drawing tools
-- `canvas.js` - Canvas rendering and pixel data
-- `fileManager.js` - Save/Load/Export operations
-- `tabManager.js` - Multi-document interface
-- `autosave.js` - Automatic saving system (30s intervals)
-- `viewport.js` - Zoom and pan functionality
-- `app.js` - Main application controller
+The included pixel art editor is a full-featured professional tool:
 
-### Modular CSS
-- `variables.css` - Design system tokens
-- `icons.css` - Material Symbols icon styling
-- `layout.css` - Photoshop-style 3-panel layout
-- `toolbox.css` - Tool sidebar styling
-- `properties.css` - Properties panel styling
-- `dialogs.css` - Custom dialog styling
-- `tabs.css` - Multi-tab system styling
-- `autosave.css` - Autosave indicator styling
-- `zoom.css` - Zoom controls styling
-- And more...
+### Features
+- **11 Drawing Tools**: Brush, Pencil, Eraser, Line, Rectangle, Ellipse, Fill, Select, Magic Wand, Move, Hand
+- **64-Color Palette**: Complete Base64 color set
+- **Multi-Tab Workspace**: Photoshop-style tabs for multiple sprites
+- **Undo/Redo**: Full history with Ctrl+Z/Y
+- **Zoom & Pan**: 10%-1000% zoom with smooth panning
+- **Autosave**: Never lose work (30s intervals)
+- **Export Options**:
+  - Copy to clipboard (text or PNG data URL)
+  - Download as TXT
+  - Download as PNG (1×, 2×, 4×, 8× scale)
+  - Optional RLE compression with live preview
+
+### Quick Start
+
+1. Open `index.html` in a browser
+2. Draw pixel art
+3. Click "Export" → Choose format
+4. Use the exported string in your code
+
+**No build process, no dependencies, no server required!**
+
+### Keyboard Shortcuts
+
+**Tools:**
+- `B` Brush, `P` Pencil, `E` Eraser, `L` Line
+- `R` Rectangle, `O` Ellipse, `F` Fill
+- `M` Select, `W` Magic Wand, `V` Move, `H` Hand
+
+**Edit:**
+- `Ctrl/Cmd + Z` - Undo
+- `Ctrl/Cmd + Y` - Redo
+- `Ctrl/Cmd + N` - New Tab
+
+**Viewport:**
+- `Ctrl/Cmd + +` - Zoom In
+- `Ctrl/Cmd + -` - Zoom Out
+- `Ctrl/Cmd + 0` - Reset Zoom
+- `Space + Drag` - Pan
+
+---
+
+## 📦 What's Included
+
+```
+inline.px/
+├── index.html              # Pixel art editor
+├── inline-px.js            # Standalone rendering library ⭐
+├── example.html            # Integration examples
+├── favicon.png             # App icon
+├── style.css               # Editor styles
+├── js/
+│   ├── app.js              # Main application
+│   ├── canvas.js           # Canvas rendering
+│   ├── tools.js            # Drawing tools
+│   ├── compression.js      # RLE compression
+│   ├── dialogs.js          # Custom dialogs
+│   ├── pngExport.js        # PNG export
+│   ├── fileManager.js      # Save/load
+│   ├── tabManager.js       # Multi-tab
+│   ├── autosave.js         # Auto-saving
+│   ├── viewport.js         # Zoom/pan
+│   ├── history.js          # Undo/redo
+│   └── colorPalette.js     # Color system
+└── css/                    # Modular stylesheets
+```
+
+**For integration, you only need `inline-px.js`!**
 
 ---
 
 ## 🎯 Use Cases
 
-### Game Development
-- **Sprite sheets**: Store multiple character animations
-- **UI elements**: Icons, buttons, cursors
-- **Tile sets**: Level tiles, terrain, objects
-- **Particle effects**: Small animated effects
-- **Emoji/Avatars**: User profile pictures
-
-### Web Development
-- **Favicon alternatives**: Tiny site icons
-- **Loading indicators**: Animated spinners
-- **Decorative elements**: Small graphics
-- **User avatars**: Retro-style profile pics
-
-### Education
-- **Pixel art tutorials**: Easy to share and modify
-- **Game development courses**: Simple asset creation
-- **Art classes**: Introduction to digital art
-
-### Data Visualization
-- **Heatmaps**: Color-coded data grids
-- **Mini charts**: Tiny sparkline-style graphs
-- **Status indicators**: Visual status grids
+- **Game Development**: Sprites, tiles, UI elements, particle effects
+- **Web Apps**: Icons, avatars, loading indicators, decorations
+- **Embedded Systems**: Tiny graphics for resource-constrained devices
+- **Education**: Pixel art tutorials, game dev courses
+- **Data Visualization**: Heatmaps, status grids, mini charts
 
 ---
 
 ## 🔧 Browser Support
 
-- ✅ Chrome/Edge (90+)
-- ✅ Firefox (88+)
-- ✅ Safari (14+)
-- ✅ Opera (76+)
-- ⚠️ Mobile browsers (touch supported, keyboard shortcuts limited)
+| Browser | Version | Notes |
+|---------|---------|-------|
+| Chrome/Edge | 90+ | ✅ Full support |
+| Firefox | 88+ | ✅ Full support |
+| Safari | 14+ | ✅ Full support |
+| Opera | 76+ | ✅ Full support |
+| Mobile | Modern | ⚠️ Touch supported, limited keyboard shortcuts |
+
+**Requirements:** Web Components (Custom Elements) support
 
 ---
 
-## 📜 License
+## 💡 Tips & Best Practices
 
-This project is open source and available under the MIT License.
+### For Smallest File Sizes
+
+1. **Use transparency** - Color `0` is transparent, use it for empty areas
+2. **Limit colors** - Fewer unique colors = better RLE compression
+3. **Keep it small** - 8×8, 16×16, 32×32 are optimal sizes
+4. **Use RLE for solid areas** - Large solid regions compress extremely well
+5. **Test compression** - Editor shows if RLE helps or hurts
+
+### For Best Quality
+
+1. **Export PNG at high scale** - Use 8× for crisp pixels
+2. **Use proper CSS** - `image-rendering: pixelated` for sharp edges
+3. **Align to grid** - Keep sprites pixel-perfect
+4. **Test at target size** - Preview at actual display scale
+
+### Performance
+
+- `<inline-px>` renders to data URL (one-time conversion)
+- Shadow DOM prevents style conflicts
+- Minimal DOM footprint
+- No external image requests
 
 ---
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome!
+Contributions welcome! The codebase is modular and well-documented.
+
+### Architecture
+
+- **Editor**: Modular JavaScript (no framework)
+- **Library**: Pure vanilla JS Web Component
+- **No build step**: Direct browser execution
+- **No dependencies**: Everything self-contained
 
 ---
 
-## 💡 Future Ideas
+## 📜 License
 
-- **Animation support**: Multiple frames with timeline
-- **Onion skinning**: See previous/next frames while animating
-- **Import from PNG**: Convert existing images
-- **Color quantization**: Automatically reduce colors
-- **Sprite sheet generator**: Combine multiple sprites
-- **NPM library**: Official parsing/rendering library
-- **Advanced compression**: LZ-based compression for even smaller sizes
-- **Collaborative editing**: Real-time multi-user editing
-- **Cloud sync**: Sync projects across devices
+MIT License - Use freely in personal and commercial projects
 
 ---
 
-## 📞 Support
+## 🚀 Get Started
 
-Having trouble? Create an issue in the GitHub repository!
+1. **Download** `inline-px.js`
+2. **Include** in your HTML
+3. **Use** `<inline-px>` elements
+4. **Create sprites** in the editor
+5. **Export** and embed in your code
+
+**No npm install, no webpack, no complexity. Just works.**
 
 ---
 
-**Made with ❤️ for game developers and pixel art enthusiasts**
+**Made with ❤️ for developers who value simplicity and efficiency**
 
-*Start creating tiny, beautiful pixel art today!*
+*Start building with ultra-compact pixel art today!*
