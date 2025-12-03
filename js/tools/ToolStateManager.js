@@ -7,6 +7,8 @@
  * - Option change notifications
  *
  * @module ToolStateManager
+ *
+ * @typedef {import('../types.js').ToolOptions} ToolOptions
  */
 
 import logger from '../core/Logger.js';

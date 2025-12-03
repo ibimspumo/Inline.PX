@@ -8,6 +8,8 @@
  * - Does not modify pixel data
  *
  * @extends BaseTool
+ *
+ * @typedef {import('../../types.js').DrawingContext} DrawingContext
  */
 
 import BaseTool from '../BaseTool.js';

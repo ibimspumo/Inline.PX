@@ -8,6 +8,9 @@
  * - PNG scale selection
  *
  * @module ExportDialog
+ *
+ * @typedef {import('../types.js').ExportResult} ExportResult
+ * @typedef {import('../types.js').CompressionStats} CompressionStats
  */
 
 import Compression from '../compression.js';

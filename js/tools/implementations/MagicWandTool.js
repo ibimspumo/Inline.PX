@@ -7,6 +7,8 @@
  * - Creates rectangular selection around matched pixels
  *
  * @extends BaseTool
+ *
+ * @typedef {import('../../types.js').DrawingContext} DrawingContext
  */
 
 import BaseTool from '../BaseTool.js';

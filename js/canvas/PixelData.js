@@ -8,6 +8,9 @@
  * - RLE compression support
  *
  * @module PixelData
+ *
+ * @typedef {import('../types.js').PixelData} PixelData
+ * @typedef {import('../types.js').CompressionStats} CompressionStats
  */
 
 import logger from '../core/Logger.js';

@@ -8,6 +8,8 @@
  * - Drawing state management
  *
  * @module CanvasEvents
+ *
+ * @typedef {import('../types.js').DrawingContext} DrawingContext
  */
 
 import logger from '../core/Logger.js';

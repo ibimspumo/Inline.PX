@@ -8,6 +8,13 @@
  * - ESC key and overlay click handling
  *
  * @module DialogCore
+ *
+ * @typedef {Object} DialogConfig
+ * @property {string} title
+ * @property {string} message
+ * @property {string} icon
+ * @property {string} type
+ * @property {Array<Object>} buttons
  */
 
 import { escapeHtml } from './DialogHelpers.js';

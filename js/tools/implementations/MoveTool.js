@@ -7,6 +7,8 @@
  * - On drag end, it "pastes" the buffered pixels into the new location.
  *
  * @extends BaseTool
+ *
+ * @typedef {import('../../types.js').DrawingContext} DrawingContext
  */
 import BaseTool from '../BaseTool.js';
 import eventBus from '../../core/EventBus.js'; // Adjust path for eventBus

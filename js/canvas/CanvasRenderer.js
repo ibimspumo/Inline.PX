@@ -9,6 +9,8 @@
  * - Smooth rendering optimizations
  *
  * @module CanvasRenderer
+ *
+ * @typedef {import('../types.js').PixelData} PixelData
  */
 
 import logger from '../core/Logger.js';

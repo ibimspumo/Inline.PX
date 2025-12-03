@@ -11,6 +11,9 @@
  * - The pixel content of a selection being moved.
  *
  * @module SelectionOverlay
+ *
+ * @typedef {import('../types.js').SelectionBounds} SelectionBounds
+ * @typedef {import('../types.js').PixelData} PixelData
  */
 
 import logger from '../core/Logger.js';

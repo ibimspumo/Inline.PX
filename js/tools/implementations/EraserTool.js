@@ -8,6 +8,8 @@
  * - Selection-aware
  *
  * @extends BaseTool
+ *
+ * @typedef {import('../../types.js').DrawingContext} DrawingContext
  */
 
 import BaseTool from '../BaseTool.js';

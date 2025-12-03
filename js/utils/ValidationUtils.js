@@ -8,6 +8,8 @@
  * - Colors
  *
  * @module ValidationUtils
+ *
+ * @typedef {import('../types.js').ValidationResult} ValidationResult
  */
 
 import logger from '../core/Logger.js';

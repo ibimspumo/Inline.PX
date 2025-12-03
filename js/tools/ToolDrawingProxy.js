@@ -7,6 +7,9 @@
  * - Validation
  *
  * @module ToolDrawingProxy
+ *
+ * @typedef {import('../types.js').DrawingContext} DrawingContext
+ * @typedef {import('../types.js').SelectionBounds} SelectionBounds
  */
 
 import logger from '../core/Logger.js';

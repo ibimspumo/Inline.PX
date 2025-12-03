@@ -8,6 +8,8 @@
  * - Prevents infinite loops
  *
  * @extends BaseTool
+ *
+ * @typedef {import('../../types.js').DrawingContext} DrawingContext
  */
 
 import BaseTool from '../BaseTool.js';
