@@ -178,3 +178,7 @@ const History = (function() {
         getStats
     };
 })();
+
+if (typeof window !== 'undefined') {
+    window.History = History;
+}

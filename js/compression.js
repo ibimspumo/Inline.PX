@@ -169,3 +169,7 @@ const Compression = (function() {
         compressBatch
     };
 })();
+
+if (typeof window !== 'undefined') {
+    window.Compression = Compression;
+}

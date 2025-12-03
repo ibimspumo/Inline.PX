@@ -1,0 +1,453 @@
+{
+  "base64Chars": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/",
+  "palette": [
+    {
+      "index": 0,
+      "char": "0",
+      "color": "transparent",
+      "name": "Transparent",
+      "category": "special"
+    },
+    {
+      "index": 1,
+      "char": "1",
+      "color": "#000000",
+      "name": "Black",
+      "category": "basic"
+    },
+    {
+      "index": 2,
+      "char": "2",
+      "color": "#FFFFFF",
+      "name": "White",
+      "category": "basic"
+    },
+    {
+      "index": 3,
+      "char": "3",
+      "color": "#FF0000",
+      "name": "Red",
+      "category": "basic"
+    },
+    {
+      "index": 4,
+      "char": "4",
+      "color": "#00FF00",
+      "name": "Green",
+      "category": "basic"
+    },
+    {
+      "index": 5,
+      "char": "5",
+      "color": "#0000FF",
+      "name": "Blue",
+      "category": "basic"
+    },
+    {
+      "index": 6,
+      "char": "6",
+      "color": "#FFFF00",
+      "name": "Yellow",
+      "category": "basic"
+    },
+    {
+      "index": 7,
+      "char": "7",
+      "color": "#FF00FF",
+      "name": "Magenta",
+      "category": "basic"
+    },
+    {
+      "index": 8,
+      "char": "8",
+      "color": "#00FFFF",
+      "name": "Cyan",
+      "category": "basic"
+    },
+    {
+      "index": 9,
+      "char": "9",
+      "color": "#1A1A1A",
+      "name": "Dark Gray 1",
+      "category": "grayscale"
+    },
+    {
+      "index": 10,
+      "char": "A",
+      "color": "#333333",
+      "name": "Dark Gray 2",
+      "category": "grayscale"
+    },
+    {
+      "index": 11,
+      "char": "B",
+      "color": "#4D4D4D",
+      "name": "Dark Gray 3",
+      "category": "grayscale"
+    },
+    {
+      "index": 12,
+      "char": "C",
+      "color": "#666666",
+      "name": "Gray 1",
+      "category": "grayscale"
+    },
+    {
+      "index": 13,
+      "char": "D",
+      "color": "#808080",
+      "name": "Gray 2",
+      "category": "grayscale"
+    },
+    {
+      "index": 14,
+      "char": "E",
+      "color": "#999999",
+      "name": "Gray 3",
+      "category": "grayscale"
+    },
+    {
+      "index": 15,
+      "char": "F",
+      "color": "#B3B3B3",
+      "name": "Light Gray 1",
+      "category": "grayscale"
+    },
+    {
+      "index": 16,
+      "char": "G",
+      "color": "#CCCCCC",
+      "name": "Light Gray 2",
+      "category": "grayscale"
+    },
+    {
+      "index": 17,
+      "char": "H",
+      "color": "#8B0000",
+      "name": "Dark Red",
+      "category": "reds"
+    },
+    {
+      "index": 18,
+      "char": "I",
+      "color": "#B22222",
+      "name": "Firebrick",
+      "category": "reds"
+    },
+    {
+      "index": 19,
+      "char": "J",
+      "color": "#DC143C",
+      "name": "Crimson",
+      "category": "reds"
+    },
+    {
+      "index": 20,
+      "char": "K",
+      "color": "#FF4500",
+      "name": "Orange Red",
+      "category": "reds"
+    },
+    {
+      "index": 21,
+      "char": "L",
+      "color": "#FF6347",
+      "name": "Tomato",
+      "category": "reds"
+    },
+    {
+      "index": 22,
+      "char": "M",
+      "color": "#FF7F50",
+      "name": "Coral",
+      "category": "reds"
+    },
+    {
+      "index": 23,
+      "char": "N",
+      "color": "#FFA500",
+      "name": "Orange",
+      "category": "reds"
+    },
+    {
+      "index": 24,
+      "char": "O",
+      "color": "#FFD700",
+      "name": "Gold",
+      "category": "reds"
+    },
+    {
+      "index": 25,
+      "char": "P",
+      "color": "#006400",
+      "name": "Dark Green",
+      "category": "greens"
+    },
+    {
+      "index": 26,
+      "char": "Q",
+      "color": "#008000",
+      "name": "Green",
+      "category": "greens"
+    },
+    {
+      "index": 27,
+      "char": "R",
+      "color": "#228B22",
+      "name": "Forest Green",
+      "category": "greens"
+    },
+    {
+      "index": 28,
+      "char": "S",
+      "color": "#32CD32",
+      "name": "Lime Green",
+      "category": "greens"
+    },
+    {
+      "index": 29,
+      "char": "T",
+      "color": "#7FFF00",
+      "name": "Chartreuse",
+      "category": "greens"
+    },
+    {
+      "index": 30,
+      "char": "U",
+      "color": "#90EE90",
+      "name": "Light Green",
+      "category": "greens"
+    },
+    {
+      "index": 31,
+      "char": "V",
+      "color": "#98FB98",
+      "name": "Pale Green",
+      "category": "greens"
+    },
+    {
+      "index": 32,
+      "char": "W",
+      "color": "#ADFF2F",
+      "name": "Yellow Green",
+      "category": "greens"
+    },
+    {
+      "index": 33,
+      "char": "X",
+      "color": "#00008B",
+      "name": "Dark Blue",
+      "category": "blues"
+    },
+    {
+      "index": 34,
+      "char": "Y",
+      "color": "#0000CD",
+      "name": "Medium Blue",
+      "category": "blues"
+    },
+    {
+      "index": 35,
+      "char": "Z",
+      "color": "#1E90FF",
+      "name": "Dodger Blue",
+      "category": "blues"
+    },
+    {
+      "index": 36,
+      "char": "a",
+      "color": "#4169E1",
+      "name": "Royal Blue",
+      "category": "blues"
+    },
+    {
+      "index": 37,
+      "char": "b",
+      "color": "#6495ED",
+      "name": "Steel Blue",
+      "category": "blues"
+    },
+    {
+      "index": 38,
+      "char": "c",
+      "color": "#87CEEB",
+      "name": "Sky Blue",
+      "category": "blues"
+    },
+    {
+      "index": 39,
+      "char": "d",
+      "color": "#87CEFA",
+      "name": "Light Sky Blue",
+      "category": "blues"
+    },
+    {
+      "index": 40,
+      "char": "e",
+      "color": "#B0E0E6",
+      "name": "Powder Blue",
+      "category": "blues"
+    },
+    {
+      "index": 41,
+      "char": "f",
+      "color": "#4B0082",
+      "name": "Indigo",
+      "category": "purples"
+    },
+    {
+      "index": 42,
+      "char": "g",
+      "color": "#6A5ACD",
+      "name": "Slate Blue",
+      "category": "purples"
+    },
+    {
+      "index": 43,
+      "char": "h",
+      "color": "#7B68EE",
+      "name": "Medium Slate Blue",
+      "category": "purples"
+    },
+    {
+      "index": 44,
+      "char": "i",
+      "color": "#9370DB",
+      "name": "Medium Purple",
+      "category": "purples"
+    },
+    {
+      "index": 45,
+      "char": "j",
+      "color": "#BA55D3",
+      "name": "Orchid",
+      "category": "purples"
+    },
+    {
+      "index": 46,
+      "char": "k",
+      "color": "#DA70D6",
+      "name": "Violet",
+      "category": "purples"
+    },
+    {
+      "index": 47,
+      "char": "l",
+      "color": "#DDA0DD",
+      "name": "Plum",
+      "category": "purples"
+    },
+    {
+      "index": 48,
+      "char": "m",
+      "color": "#EE82EE",
+      "name": "Pink Violet",
+      "category": "purples"
+    },
+    {
+      "index": 49,
+      "char": "n",
+      "color": "#8B4513",
+      "name": "Saddle Brown",
+      "category": "browns"
+    },
+    {
+      "index": 50,
+      "char": "o",
+      "color": "#A0522D",
+      "name": "Sienna",
+      "category": "browns"
+    },
+    {
+      "index": 51,
+      "char": "p",
+      "color": "#D2691E",
+      "name": "Chocolate",
+      "category": "browns"
+    },
+    {
+      "index": 52,
+      "char": "q",
+      "color": "#CD853F",
+      "name": "Peru",
+      "category": "browns"
+    },
+    {
+      "index": 53,
+      "char": "r",
+      "color": "#F4A460",
+      "name": "Sandy Brown",
+      "category": "browns"
+    },
+    {
+      "index": 54,
+      "char": "s",
+      "color": "#DEB887",
+      "name": "Burlywood",
+      "category": "browns"
+    },
+    {
+      "index": 55,
+      "char": "t",
+      "color": "#D2B48C",
+      "name": "Tan",
+      "category": "browns"
+    },
+    {
+      "index": 56,
+      "char": "u",
+      "color": "#BC8F8F",
+      "name": "Rosy Brown",
+      "category": "browns"
+    },
+    {
+      "index": 57,
+      "char": "v",
+      "color": "#FFB6C1",
+      "name": "Light Pink",
+      "category": "pastels"
+    },
+    {
+      "index": 58,
+      "char": "w",
+      "color": "#FFC0CB",
+      "name": "Pink",
+      "category": "pastels"
+    },
+    {
+      "index": 59,
+      "char": "x",
+      "color": "#FFE4E1",
+      "name": "Misty Rose",
+      "category": "pastels"
+    },
+    {
+      "index": 60,
+      "char": "y",
+      "color": "#F0E68C",
+      "name": "Khaki",
+      "category": "pastels"
+    },
+    {
+      "index": 61,
+      "char": "z",
+      "color": "#E6E6FA",
+      "name": "Lavender",
+      "category": "pastels"
+    },
+    {
+      "index": 62,
+      "char": "+",
+      "color": "#D8BFD8",
+      "name": "Thistle",
+      "category": "pastels"
+    },
+    {
+      "index": 63,
+      "char": "/",
+      "color": "#FFDAB9",
+      "name": "Peach",
+      "category": "pastels"
+    }
+  ]
+}

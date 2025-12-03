@@ -405,3 +405,7 @@ const FileManager = (function() {
         showLoadDialog
     };
 })();
+
+if (typeof window !== 'undefined') {
+    window.FileManager = FileManager;
+}

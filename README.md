@@ -741,24 +741,68 @@ inline.px/
 ├── inline-px.js            # Standalone rendering library ⭐
 ├── example.html            # Integration examples
 ├── favicon.png             # App icon
-├── style.css               # Editor styles
+├── style.css               # Editor styles (modular imports)
+├── config/                 # Configuration
+│   ├── colors.js           # 64-color palette (editable)
+│   └── constants.js        # App-wide constants
 ├── js/
+│   ├── core/               # Core infrastructure
+│   │   ├── Logger.js       # Logging system
+│   │   ├── EventBus.js     # Event-driven architecture
+│   │   └── ConfigLoader.js # Configuration loader
+│   ├── utils/              # Utility modules
+│   │   ├── ClipboardUtils.js
+│   │   ├── ValidationUtils.js
+│   │   └── FormatUtils.js
+│   ├── tools/              # Drawing tools system
+│   │   ├── BaseTool.js     # Abstract base class
+│   │   ├── ToolRegistry.js # Tool management
+│   │   └── implementations/
+│   │       ├── BrushTool.js
+│   │       ├── PencilTool.js
+│   │       ├── EraserTool.js
+│   │       ├── LineTool.js
+│   │       ├── RectangleTool.js
+│   │       ├── EllipseTool.js
+│   │       ├── FillTool.js
+│   │       ├── SelectTool.js
+│   │       ├── MagicWandTool.js
+│   │       ├── MoveTool.js
+│   │       └── HandTool.js
+│   ├── canvas/             # Canvas system (5 modules)
+│   │   ├── PixelData.js    # Data management
+│   │   ├── CanvasRenderer.js # Rendering engine
+│   │   ├── CanvasEvents.js # Event handling
+│   │   ├── SelectionOverlay.js # Selection visualization
+│   │   └── PixelCanvas.js  # Canvas orchestrator
 │   ├── app.js              # Main application
-│   ├── canvas.js           # Canvas rendering
-│   ├── tools.js            # Drawing tools
 │   ├── compression.js      # RLE compression
-│   ├── dialogs.js          # Custom dialogs
+│   ├── dialogs.js          # Custom modal system
 │   ├── pngExport.js        # PNG export
 │   ├── fileManager.js      # Save/load
-│   ├── tabManager.js       # Multi-tab
+│   ├── tabManager.js       # Multi-tab workspace
 │   ├── autosave.js         # Auto-saving
 │   ├── viewport.js         # Zoom/pan
 │   ├── history.js          # Undo/redo
 │   └── colorPalette.js     # Color system
-└── css/                    # Modular stylesheets
+└── css/                    # Modular stylesheets (12 files)
+    ├── variables.css       # Design tokens
+    ├── layout.css          # 3-panel layout
+    ├── dialogs.css         # Custom modals
+    └── ...                 # 9 more CSS modules
 ```
 
 **For integration, you only need `inline-px.js`!**
+
+### Architecture Highlights
+
+The editor features a **fully modular architecture**:
+- ✅ **26+ JavaScript modules** - Clean separation of concerns
+- ✅ **IIFE pattern** - No bundler required, runs directly in browser
+- ✅ **Event-driven** - Loose coupling via EventBus
+- ✅ **Extensible** - Add new tools by extending BaseTool
+- ✅ **Well-documented** - Comprehensive inline documentation
+- ✅ **No dependencies** - Pure vanilla JavaScript
 
 ---
 

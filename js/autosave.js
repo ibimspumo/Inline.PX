@@ -271,3 +271,7 @@ const Autosave = (function() {
         setEnabled
     };
 })();
+
+if (typeof window !== 'undefined') {
+    window.Autosave = Autosave;
+}

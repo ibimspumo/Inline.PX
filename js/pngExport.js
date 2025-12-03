@@ -227,3 +227,7 @@ const PNGExport = (function() {
         getScaleOptions
     };
 })();
+
+if (typeof window !== 'undefined') {
+    window.PNGExport = PNGExport;
+}

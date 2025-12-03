@@ -1,136 +1,137 @@
 /**
- * ColorPalette Module - Base64 Color System
+ * ColorPalette Module - Base64 Color System (Refactored)
  *
- * Manages a professional 64-color palette using Base64 encoding:
- * - 0 = Transparent
- * - 1-63 = Colors
+ * Modern color palette management with:
+ * - JSON-based configuration (colors.json)
+ * - 64-color Base64 encoding
+ * - Event-driven architecture
+ * - Category filtering
+ * - Custom palette support
  *
- * Base64 characters: 0-9, A-Z, a-z, +, /
- *
- * Color categories:
- * - Basic colors (1-16): Primary colors, grayscale
- * - Extended colors (17-63): RGB variations, earth tones, pastels
+ * @module ColorPalette
  */
 
 const ColorPalette = (function() {
     'use strict';
 
-    // Base64 character set for encoding
-    const BASE64_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/';
+    // Configuration
+    let config = null;
+    let base64Chars = '';
+    let palette = [];
+    let colorsByIndex = [];
+    let colorsByChar = {};
+    let namesByIndex = [];
 
-    // 64 colors including transparent
-    const COLORS = [
-        // 0: Transparent
-        'transparent',
-
-        // 1-8: Basic colors
-        '#000000', // 1: Black
-        '#FFFFFF', // 2: White
-        '#FF0000', // 3: Red
-        '#00FF00', // 4: Green
-        '#0000FF', // 5: Blue
-        '#FFFF00', // 6: Yellow
-        '#FF00FF', // 7: Magenta
-        '#00FFFF', // 8: Cyan
-
-        // 9-16: Grayscale
-        '#1A1A1A', '#333333', '#4D4D4D', '#666666',
-        '#808080', '#999999', '#B3B3B3', '#CCCCCC',
-
-        // 17-24: Reds/Oranges
-        '#8B0000', '#B22222', '#DC143C', '#FF4500',
-        '#FF6347', '#FF7F50', '#FFA500', '#FFD700',
-
-        // 25-32: Greens
-        '#006400', '#008000', '#228B22', '#32CD32',
-        '#7FFF00', '#90EE90', '#98FB98', '#ADFF2F',
-
-        // 33-40: Blues/Cyans
-        '#00008B', '#0000CD', '#1E90FF', '#4169E1',
-        '#6495ED', '#87CEEB', '#87CEFA', '#B0E0E6',
-
-        // 41-48: Purples/Magentas
-        '#4B0082', '#6A5ACD', '#7B68EE', '#9370DB',
-        '#BA55D3', '#DA70D6', '#DDA0DD', '#EE82EE',
-
-        // 49-56: Browns/Earth tones
-        '#8B4513', '#A0522D', '#D2691E', '#CD853F',
-        '#F4A460', '#DEB887', '#D2B48C', '#BC8F8F',
-
-        // 57-63: Pastels/Extras
-        '#FFB6C1', '#FFC0CB', '#FFE4E1', '#F0E68C',
-        '#E6E6FA', '#D8BFD8', '#FFDAB9'
-    ];
-
-    const COLOR_NAMES = [
-        'Transparent', 'Black', 'White', 'Red', 'Green', 'Blue', 'Yellow', 'Magenta', 'Cyan',
-        'Dark Gray 1', 'Dark Gray 2', 'Dark Gray 3', 'Gray 1', 'Gray 2', 'Gray 3', 'Light Gray 1', 'Light Gray 2',
-        'Dark Red', 'Firebrick', 'Crimson', 'Orange Red', 'Tomato', 'Coral', 'Orange', 'Gold',
-        'Dark Green', 'Green', 'Forest Green', 'Lime Green', 'Chartreuse', 'Light Green', 'Pale Green', 'Yellow Green',
-        'Dark Blue', 'Medium Blue', 'Dodger Blue', 'Royal Blue', 'Steel Blue', 'Sky Blue', 'Light Sky Blue', 'Powder Blue',
-        'Indigo', 'Slate Blue', 'Medium Slate Blue', 'Medium Purple', 'Orchid', 'Violet', 'Plum', 'Pink Violet',
-        'Saddle Brown', 'Sienna', 'Chocolate', 'Peru', 'Sandy Brown', 'Burlywood', 'Tan', 'Rosy Brown',
-        'Light Pink', 'Pink', 'Misty Rose', 'Khaki', 'Lavender', 'Thistle', 'Peach'
-    ];
-
-    let currentColorCode = 1; // Default to black
+    // Current state
+    let currentColorIndex = 1; // Default to black
     let onColorChangeCallback = null;
-    let customPalette = [...COLORS]; // Allow for custom colors
+    let customPalette = null; // For user customization
+
+    // Logger and EventBus
+    const logger = window.Logger || console;
+    const eventBus = window.EventBus || null;
 
     /**
-     * Initialize the color palette UI
+     * Initialize the color palette
      * @param {string} containerId - ID of the container element
      * @param {Function} onColorChange - Callback when color changes
+     * @returns {Promise<void>}
      */
-    function init(containerId, onColorChange) {
-        onColorChangeCallback = onColorChange;
-        const container = document.getElementById(containerId);
+    async function init(containerId, onColorChange = null) {
+        try {
+            logger.info?.('ColorPalette initializing...');
 
-        if (!container) {
-            console.error('Color palette container not found:', containerId);
-            return;
+            onColorChangeCallback = onColorChange;
+
+            // Load color configuration
+            if (window.ConfigLoader) {
+                config = await window.ConfigLoader.loadColors();
+            } else {
+                throw new Error('ConfigLoader not available');
+            }
+
+            // Parse configuration
+            parseConfig();
+
+            // Render UI
+            const container = document.getElementById(containerId);
+            if (container) {
+                renderPalette(container);
+                updateColorDisplay();
+            } else {
+                logger.warn?.(`Container "${containerId}" not found`);
+            }
+
+            logger.info?.('ColorPalette initialized successfully');
+
+        } catch (error) {
+            logger.error?.('ColorPalette initialization failed', error);
+            throw error;
         }
+    }
 
-        renderPalette(container);
-        updateColorDisplay();
+    /**
+     * Parse color configuration
+     * @private
+     */
+    function parseConfig() {
+        base64Chars = config.base64Chars;
+        palette = config.palette;
+
+        // Build lookup structures
+        colorsByIndex = [];
+        colorsByChar = {};
+        namesByIndex = [];
+
+        palette.forEach(item => {
+            colorsByIndex[item.index] = item.color;
+            colorsByChar[item.char] = item.color;
+            namesByIndex[item.index] = item.name;
+        });
+
+        logger.debug?.(`Parsed ${palette.length} colors from configuration`);
     }
 
     /**
      * Render the color palette
-     * @param {HTMLElement} container - Container element
+     * @private
      */
     function renderPalette(container) {
         container.innerHTML = '';
 
-        // Create color grid
-        COLORS.forEach((color, index) => {
+        palette.forEach(item => {
             const btn = document.createElement('button');
             btn.className = 'color-swatch';
-            btn.dataset.code = BASE64_CHARS[index];
-            btn.dataset.index = index;
-            btn.style.backgroundColor = color;
-            btn.title = `${COLOR_NAMES[index]} (${BASE64_CHARS[index]})`;
+            btn.dataset.code = item.char;
+            btn.dataset.index = item.index;
+            btn.dataset.category = item.category;
+            btn.style.backgroundColor = item.color;
+            btn.title = `${item.name} (${item.char})`;
 
-            if (index === currentColorCode) {
+            if (item.index === currentColorIndex) {
                 btn.classList.add('active');
             }
 
-            btn.addEventListener('click', () => selectColor(index));
+            btn.addEventListener('click', () => selectColor(item.index));
             container.appendChild(btn);
         });
+
+        logger.debug?.(`Rendered ${palette.length} color swatches`);
     }
 
     /**
-     * Select a color by its index
+     * Select a color by index
      * @param {number} index - Color index (0-63)
      */
     function selectColor(index) {
-        if (index < 0 || index >= COLORS.length) {
-            console.error('Invalid color index:', index);
+        // Validate index
+        if (!window.ValidationUtils || !window.ValidationUtils.validateColorIndex(index)) {
+            logger.error?.(`Invalid color index: ${index}`);
             return;
         }
 
-        currentColorCode = index;
+        const oldIndex = currentColorIndex;
+        currentColorIndex = index;
 
         // Update UI
         document.querySelectorAll('.color-swatch').forEach(btn => {
@@ -141,28 +142,37 @@ const ColorPalette = (function() {
 
         // Trigger callback
         if (onColorChangeCallback) {
-            onColorChangeCallback(index, COLORS[index]);
+            onColorChangeCallback(index, colorsByIndex[index]);
         }
+
+        // Emit event
+        if (eventBus) {
+            eventBus.emit(eventBus.Events.COLOR_CHANGED, {
+                index,
+                color: colorsByIndex[index],
+                char: base64Chars[index],
+                name: namesByIndex[index],
+                oldIndex
+            });
+        }
+
+        logger.debug?.(`Color selected: ${namesByIndex[index]} (${index})`);
     }
 
     /**
      * Update the current color display
+     * @private
      */
     function updateColorDisplay() {
         const colorDisplay = document.getElementById('currentColorDisplay');
         const colorCode = document.getElementById('currentColorCode');
-        const colorName = document.getElementById('currentColorName');
 
         if (colorDisplay) {
-            colorDisplay.style.backgroundColor = COLORS[currentColorCode];
+            colorDisplay.style.backgroundColor = colorsByIndex[currentColorIndex];
         }
 
         if (colorCode) {
-            colorCode.textContent = BASE64_CHARS[currentColorCode];
-        }
-
-        if (colorName) {
-            colorName.textContent = COLOR_NAMES[currentColorCode];
+            colorCode.textContent = base64Chars[currentColorIndex];
         }
     }
 
@@ -172,7 +182,7 @@ const ColorPalette = (function() {
      * @returns {string} Hex color or 'transparent'
      */
     function getColor(index) {
-        return COLORS[index] || COLORS[0];
+        return colorsByIndex[index] || colorsByIndex[0];
     }
 
     /**
@@ -181,16 +191,15 @@ const ColorPalette = (function() {
      * @returns {string} Hex color or 'transparent'
      */
     function getColorByChar(char) {
-        const index = BASE64_CHARS.indexOf(char);
-        return index >= 0 ? COLORS[index] : COLORS[0];
+        return colorsByChar[char] || colorsByIndex[0];
     }
 
     /**
-     * Get current selected color code (index)
+     * Get current selected color index
      * @returns {number} Current color index
      */
-    function getCurrentColorCode() {
-        return currentColorCode;
+    function getCurrentColorIndex() {
+        return currentColorIndex;
     }
 
     /**
@@ -198,7 +207,7 @@ const ColorPalette = (function() {
      * @returns {string} Current color hex or 'transparent'
      */
     function getCurrentColor() {
-        return COLORS[currentColorCode];
+        return colorsByIndex[currentColorIndex];
     }
 
     /**
@@ -207,7 +216,7 @@ const ColorPalette = (function() {
      * @returns {string} Base64 character
      */
     function getBase64Char(index) {
-        return BASE64_CHARS[index] || '0';
+        return base64Chars[index] || '0';
     }
 
     /**
@@ -216,15 +225,34 @@ const ColorPalette = (function() {
      * @returns {number} Color index
      */
     function getIndexFromChar(char) {
-        return BASE64_CHARS.indexOf(char);
+        return base64Chars.indexOf(char);
     }
 
     /**
      * Get all colors
-     * @returns {Array} Array of color hex codes
+     * @returns {Array} Array of color objects
      */
     function getAllColors() {
-        return [...COLORS];
+        return [...palette];
+    }
+
+    /**
+     * Get colors by category
+     * @param {string} category - Category name
+     * @returns {Array} Filtered color objects
+     */
+    function getColorsByCategory(category) {
+        return palette.filter(item => item.category === category);
+    }
+
+    /**
+     * Get all categories
+     * @returns {Array<string>} Category names
+     */
+    function getCategories() {
+        const categories = new Set();
+        palette.forEach(item => categories.add(item.category));
+        return Array.from(categories);
     }
 
     /**
@@ -233,7 +261,7 @@ const ColorPalette = (function() {
      * @returns {Object} RGBA values {r, g, b, a}
      */
     function indexToRGBA(index) {
-        const color = COLORS[index];
+        const color = colorsByIndex[index];
 
         if (color === 'transparent') {
             return { r: 0, g: 0, b: 0, a: 0 };
@@ -254,17 +282,87 @@ const ColorPalette = (function() {
      * @returns {string} Color name
      */
     function getColorName(index) {
-        return COLOR_NAMES[index] || 'Unknown';
+        return namesByIndex[index] || 'Unknown';
     }
 
     /**
-     * Set custom color at index
+     * Get color info by index
+     * @param {number} index - Color index
+     * @returns {Object|null} Color info object
+     */
+    function getColorInfo(index) {
+        return palette.find(item => item.index === index) || null;
+    }
+
+    /**
+     * Set custom color at index (runtime override)
      * @param {number} index - Color index
      * @param {string} hexColor - Hex color code
      */
     function setCustomColor(index, hexColor) {
-        if (index >= 0 && index < COLORS.length) {
+        if (index >= 0 && index < colorsByIndex.length) {
+            if (!customPalette) {
+                customPalette = [...colorsByIndex];
+            }
             customPalette[index] = hexColor;
+            colorsByIndex[index] = hexColor;
+
+            // Re-render if needed
+            const swatch = document.querySelector(`.color-swatch[data-index="${index}"]`);
+            if (swatch) {
+                swatch.style.backgroundColor = hexColor;
+            }
+
+            logger.info?.(`Custom color set at index ${index}: ${hexColor}`);
+        }
+    }
+
+    /**
+     * Reset to default palette
+     */
+    function resetToDefault() {
+        if (config) {
+            parseConfig();
+            const container = document.querySelector('.color-grid');
+            if (container) {
+                renderPalette(container);
+            }
+            customPalette = null;
+            logger.info?.('Palette reset to default');
+        }
+    }
+
+    /**
+     * Export custom palette
+     * @returns {Object} Custom palette configuration
+     */
+    function exportCustomPalette() {
+        return {
+            base64Chars,
+            palette: palette.map((item, index) => ({
+                ...item,
+                color: customPalette ? customPalette[index] : item.color
+            }))
+        };
+    }
+
+    /**
+     * Import custom palette
+     * @param {Object} paletteConfig - Palette configuration
+     */
+    function importCustomPalette(paletteConfig) {
+        try {
+            config = paletteConfig;
+            parseConfig();
+
+            const container = document.querySelector('.color-grid');
+            if (container) {
+                renderPalette(container);
+            }
+
+            logger.info?.('Custom palette imported');
+        } catch (error) {
+            logger.error?.('Failed to import custom palette', error);
         }
     }
 
@@ -274,15 +372,28 @@ const ColorPalette = (function() {
         selectColor,
         getColor,
         getColorByChar,
-        getCurrentColorCode,
+        getCurrentColorIndex,
         getCurrentColor,
         getBase64Char,
         getIndexFromChar,
         getAllColors,
+        getColorsByCategory,
+        getCategories,
         indexToRGBA,
         getColorName,
+        getColorInfo,
         setCustomColor,
-        BASE64_CHARS,
-        COLORS
+        resetToDefault,
+        exportCustomPalette,
+        importCustomPalette,
+
+        // Expose for compatibility
+        get BASE64_CHARS() { return base64Chars; },
+        get COLORS() { return colorsByIndex; }
     };
 })();
+
+// Make available globally
+if (typeof window !== 'undefined') {
+    window.ColorPalette = ColorPalette;
+}

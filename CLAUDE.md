@@ -8,11 +8,17 @@ Inline.px is a browser-based pixel art editor that generates ultra-compact text 
 1. **Editor Application** (`index.html` + modular JS/CSS) - Professional pixel art creation tool
 2. **Standalone Library** (`inline-px.js`) - Drop-in Web Component for rendering pixel art anywhere
 
+**Version 2.0** features a complete architectural refactoring with modular tool system, JSON-based configuration, and event-driven architecture. See `CLAUDE_REFACTORING.md` for detailed documentation.
+
 ## Development Setup
 
 **No build process, no dependencies, no server required.**
 
-Open `index.html` in any modern browser to run the editor. All code runs client-side.
+⚠️ **IMPORTANT:** Serve via HTTP server (not `file://`) for JSON config loading:
+```bash
+python3 -m http.server 8000
+# Then open http://localhost:8000
+```
 
 For testing the standalone library integration, open `example.html`.
 
@@ -281,19 +287,56 @@ The export dialog shows compression option with dynamic feedback:
 5. **Selection Overlay:** Must update size when canvas resizes (zoom, resize canvas, etc).
 6. **Dialogs:** Use `await Dialogs.confirm()` pattern, not browser `confirm()` which blocks.
 
-## File Organization
+## File Organization (v2.0 - Refactored)
 
 ```
 inline.px/
 ├── index.html              # Editor (main app entry point)
 ├── inline-px.js            # Standalone library (Web Component)
 ├── example.html            # Integration examples
+├── CLAUDE_REFACTORING.md   # Detailed refactoring documentation
 ├── style.css               # CSS module loader
-├── js/                     # Editor modules
-│   ├── app.js              # Main orchestrator
-│   ├── canvas.js           # Canvas rendering
-│   ├── tools.js            # Drawing tools
-│   ├── colorPalette.js     # 64-color system
+│
+├── config/                 # JSON Configuration
+│   ├── colors.json         # 64-color palette (user-editable!)
+│   └── constants.json      # App-wide constants
+│
+├── js/                     # Editor modules (modular architecture)
+│   ├── core/               # Core infrastructure
+│   │   ├── Logger.js       # Unified logging system
+│   │   ├── EventBus.js     # Event-driven communication
+│   │   └── ConfigLoader.js # JSON configuration loader
+│   │
+│   ├── utils/              # Utility modules
+│   │   ├── ClipboardUtils.js    # Clipboard operations
+│   │   ├── ValidationUtils.js   # Input validation
+│   │   └── FormatUtils.js       # String formatting
+│   │
+│   ├── tools/              # Tool system (26 modules total!)
+│   │   ├── BaseTool.js     # Abstract base class (600+ lines)
+│   │   ├── ToolRegistry.js # Dynamic tool management
+│   │   └── implementations/
+│   │       ├── BrushTool.js
+│   │       ├── PencilTool.js
+│   │       ├── EraserTool.js
+│   │       ├── LineTool.js
+│   │       ├── RectangleTool.js
+│   │       ├── EllipseTool.js
+│   │       ├── FillTool.js
+│   │       ├── SelectTool.js
+│   │       ├── MagicWandTool.js
+│   │       ├── MoveTool.js
+│   │       └── HandTool.js
+│   │
+│   ├── canvas/             # Canvas system (split into 5 modules)
+│   │   ├── PixelData.js    # Data management
+│   │   ├── CanvasRenderer.js    # Rendering engine
+│   │   ├── CanvasEvents.js      # Event handling
+│   │   ├── SelectionOverlay.js  # Selection visualization
+│   │   └── PixelCanvas.js       # Orchestrator
+│   │
+│   ├── app.js              # Main controller (refactored)
+│   ├── colorPalette.js     # JSON-based palette (refactored)
 │   ├── compression.js      # RLE compression
 │   ├── dialogs.js          # Modal system
 │   ├── history.js          # Undo/redo
@@ -302,12 +345,18 @@ inline.px/
 │   ├── autosave.js         # Auto-saving
 │   ├── viewport.js         # Zoom/pan
 │   └── pngExport.js        # PNG export
-└── css/                    # Modular stylesheets
-    ├── variables.css       # Design tokens
-    ├── layout.css          # 3-panel layout
-    ├── dialogs.css         # Modal styles
+│
+└── css/                    # Modular stylesheets (unchanged)
+    ├── variables.css
+    ├── layout.css
     └── ...                 # 12 total CSS modules
 ```
+
+**Old monolithic files** (kept as `_old.js` for reference):
+- `js/tools_old.js` (696 lines → 11 separate files)
+- `js/canvas_old.js` (595 lines → 5 separate modules)
+- `js/colorPalette_old.js` (hardcoded → JSON-based)
+- `js/app_old.js` (761 lines → modern architecture)
 
 ## Integration Guide
 

@@ -473,3 +473,7 @@ const Dialogs = (function() {
         exportDialog
     };
 })();
+
+if (typeof window !== 'undefined') {
+    window.Dialogs = Dialogs;
+}

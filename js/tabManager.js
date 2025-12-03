@@ -443,3 +443,7 @@ const TabManager = (function() {
         setCurrentTabName
     };
 })();
+
+if (typeof window !== 'undefined') {
+    window.TabManager = TabManager;
+}

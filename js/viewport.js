@@ -375,3 +375,7 @@ const Viewport = (function() {
         updateCanvasSize
     };
 })();
+
+if (typeof window !== 'undefined') {
+    window.Viewport = Viewport;
+}

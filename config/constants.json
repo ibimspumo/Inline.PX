@@ -1,0 +1,39 @@
+{
+  "canvas": {
+    "minSize": 2,
+    "maxSize": 128,
+    "defaultWidth": 16,
+    "defaultHeight": 16,
+    "minPixelSize": 8,
+    "maxPixelSize": 50,
+    "defaultPixelSize": 30
+  },
+  "history": {
+    "maxStates": 50,
+    "debounceTime": 500
+  },
+  "autosave": {
+    "interval": 30000,
+    "debounceTime": 1000
+  },
+  "tools": {
+    "brushSizes": [1, 2, 3, 5],
+    "defaultBrushSize": 1,
+    "maxBrushSize": 5,
+    "shapeModes": ["fill", "stroke"],
+    "defaultShapeMode": "fill"
+  },
+  "rle": {
+    "maxRunLength": 99,
+    "countDigits": 2
+  },
+  "ui": {
+    "copyFeedbackDuration": 1000,
+    "windowResizeDebounce": 250,
+    "animationDuration": 200
+  },
+  "validation": {
+    "fileNameMaxLength": 100,
+    "fileNamePattern": "^[a-zA-Z0-9_\\-\\.]+$"
+  }
+}

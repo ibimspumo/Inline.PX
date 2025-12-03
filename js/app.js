@@ -1,144 +1,253 @@
 /**
- * App Module - Main Application Controller
- * Coordinates all modules for PixelCreator Pro
+ * App Module - Main Application Controller (Refactored)
  *
- * Features:
- * - Tool system coordination
- * - Keyboard shortcuts
- * - UI state management
- * - File operations
+ * Modern architecture with:
+ * - Modular tool system with dynamic loading
+ * - Event-driven communication via EventBus
+ * - JSON-based configuration
+ * - Comprehensive error handling
+ * - Clean separation of concerns
+ *
+ * @module App
  */
 
 const App = (function() {
     'use strict';
 
+    // Application state
+    let initialized = false;
+    let constants = null;
+
+    // Module references (accessed via window to ensure they're loaded)
+    const logger = window.Logger;
+    const eventBus = window.EventBus;
+    const configLoader = window.ConfigLoader;
+    const validationUtils = window.ValidationUtils;
+    const formatUtils = window.FormatUtils;
+
     /**
      * Initialize the application
+     * @returns {Promise<void>}
      */
-    function init() {
-        console.log('Inline.px initializing...');
+    async function init() {
+        try {
+            logger.info('Inline.px initializing...');
 
-        // Initialize dialog system first
-        Dialogs.init();
+            // Load constants
+            constants = await configLoader.loadConstants();
+            validationUtils.init(constants);
 
-        // Initialize core modules
-        Tools.init(onToolChange);
-        ColorPalette.init('colorPalette', onColorChange);
-        PixelCanvas.init('pixelCanvas', 16, 16, onCanvasChange);
+            // Initialize core systems
+            await initializeCoreSystems();
 
-        // Initialize new modules
-        TabManager.init();
-        Autosave.init();
-        Viewport.init();
-        History.init({
-            onHistoryChange: updateHistoryUI
+            // Initialize UI
+            initializeUI();
+
+            // Setup keyboard shortcuts
+            setupKeyboardShortcuts();
+
+            // Mark as initialized
+            initialized = true;
+
+            logger.info('Inline.px ready!');
+            eventBus.emit(eventBus.Events.APP_READY);
+
+        } catch (error) {
+            logger.error('Application initialization failed', error);
+            eventBus.emit(eventBus.Events.APP_ERROR, error);
+
+            if (window.Dialogs) {
+                await window.Dialogs.alert('Initialization Error', `Failed to initialize application: ${error.message}`, 'error');
+            } else {
+                alert(`Initialization failed: ${error.message}`);
+            }
+        }
+    }
+
+    /**
+     * Initialize core systems
+     * @private
+     */
+    async function initializeCoreSystems() {
+        // Initialize dialogs
+        if (window.Dialogs) {
+            window.Dialogs.init();
+        }
+
+        // Initialize color palette
+        if (window.ColorPalette) {
+            await window.ColorPalette.init('colorPalette', onColorChange);
+        } else {
+            throw new Error('ColorPalette module not available');
+        }
+
+        // Initialize canvas
+        if (window.PixelCanvas) {
+            const defaultWidth = constants?.canvas?.defaultWidth || 16;
+            const defaultHeight = constants?.canvas?.defaultHeight || 16;
+            await window.PixelCanvas.init('pixelCanvas', defaultWidth, defaultHeight, onCanvasChange);
+        } else {
+            throw new Error('PixelCanvas module not available');
+        }
+
+        // Register and initialize tools
+        await initializeTools();
+
+        // Initialize other modules
+        if (window.TabManager) {
+            window.TabManager.init();
+        }
+
+        if (window.Autosave) {
+            window.Autosave.init();
+        }
+
+        if (window.Viewport) {
+            window.Viewport.init();
+        }
+
+        if (window.History) {
+            window.History.init({
+                onHistoryChange: updateHistoryUI
+            });
+        }
+
+        logger.info('Core systems initialized');
+    }
+
+    /**
+     * Initialize and register all tools
+     * @private
+     */
+    async function initializeTools() {
+        if (!window.ToolRegistry) {
+            throw new Error('ToolRegistry not available');
+        }
+
+        // Initialize tool registry
+        window.ToolRegistry.init({
+            onToolChange,
+            onToolOptionChange: onToolOptionChange,
+            sharedOptions: {
+                brushSize: constants?.tools?.defaultBrushSize || 1,
+                shapeMode: constants?.tools?.defaultShapeMode || 'fill',
+                colorCode: 1
+            }
         });
 
-        // Setup UI
+        // Register all tools
+        const toolClasses = [
+            window.BrushTool,
+            window.PencilTool,
+            window.EraserTool,
+            window.LineTool,
+            window.RectangleTool,
+            window.EllipseTool,
+            window.FillTool,
+            window.SelectTool,
+            window.MagicWandTool,
+            window.MoveTool,
+            window.HandTool
+        ];
+
+        const registered = window.ToolRegistry.registerTools(toolClasses.filter(Boolean));
+        logger.info(`Registered ${registered} tools`);
+
+        // Set default tool (brush)
+        window.ToolRegistry.setCurrentTool('brush');
+    }
+
+    /**
+     * Initialize UI elements
+     * @private
+     */
+    function initializeUI() {
         setupToolbox();
         setupMenuBar();
         setupPropertiesPanel();
-        setupModals();
-        setupKeyboardShortcuts();
-
-        // Initial updates
         updateLiveExportPreview();
         updateSizePresetHighlight();
-
-        console.log('Inline.px ready!');
     }
 
     /**
-     * Handle canvas change (drawing, resizing, etc.)
-     */
-    function onCanvasChange() {
-        updateLiveExportPreview();
-
-        // Mark tab as dirty and trigger autosave
-        if (TabManager) {
-            TabManager.markCurrentTabDirty();
-        }
-
-        // Save state to history (debounced to avoid saving on every pixel)
-        clearTimeout(window.historyDebounceTimer);
-        window.historyDebounceTimer = setTimeout(() => {
-            const currentState = PixelCanvas.exportToString();
-            History.pushState(currentState, 'Paint');
-        }, 500); // Wait 500ms after last change
-    }
-
-    /**
-     * Setup toolbox with all tools
+     * Setup toolbox with dynamic tool loading
+     * @private
      */
     function setupToolbox() {
         const toolbox = document.getElementById('toolbox');
-        if (!toolbox) return;
+        if (!toolbox || !window.ToolRegistry) return;
 
         toolbox.innerHTML = '';
 
-        // Create tool buttons
-        Object.values(Tools.TOOL_TYPES).forEach(toolType => {
-            const info = Tools.getToolInfo(toolType);
-            if (!info) return;
+        const tools = window.ToolRegistry.getAllTools();
 
+        tools.forEach(toolConfig => {
             const btn = document.createElement('button');
             btn.className = 'tool-btn';
-            btn.dataset.tool = toolType;
-            btn.title = `${info.name} (${info.shortcut})`;
+            btn.dataset.tool = toolConfig.id;
+            btn.title = `${toolConfig.name} (${toolConfig.shortcut})`;
 
-            if (toolType === Tools.getCurrentTool()) {
+            if (toolConfig.id === window.ToolRegistry.getCurrentToolId()) {
                 btn.classList.add('active');
             }
 
             btn.innerHTML = `
-                <span class="material-symbols-outlined tool-icon">${info.icon}</span>
-                <span class="tool-label">${info.name}</span>
-                <span class="tool-shortcut">${info.shortcut}</span>
+                <span class="material-symbols-outlined tool-icon">${toolConfig.icon}</span>
+                <span class="tool-label">${toolConfig.name}</span>
+                <span class="tool-shortcut">${toolConfig.shortcut}</span>
             `;
 
             btn.addEventListener('click', () => {
-                Tools.setTool(toolType);
+                window.ToolRegistry.setCurrentTool(toolConfig.id);
             });
 
             toolbox.appendChild(btn);
         });
+
+        logger.debug('Toolbox setup complete');
     }
 
     /**
      * Setup menu bar events
+     * @private
      */
     function setupMenuBar() {
-        document.getElementById('newBtn').addEventListener('click', handleNew);
-        document.getElementById('saveBtn').addEventListener('click', handleSave);
-        document.getElementById('loadBtn').addEventListener('click', handleLoad);
-        document.getElementById('undoBtn').addEventListener('click', handleUndo);
-        document.getElementById('redoBtn').addEventListener('click', handleRedo);
-        document.getElementById('exportFileBtn').addEventListener('click', handleExportFile);
-        document.getElementById('importStringBtn').addEventListener('click', handleImportString);
-        document.getElementById('clearBtn').addEventListener('click', handleClear);
-        document.getElementById('copyLiveStringBtn').addEventListener('click', handleCopyLiveString);
+        bindEvent('newBtn', handleNew);
+        bindEvent('saveBtn', handleSave);
+        bindEvent('loadBtn', handleLoad);
+        bindEvent('undoBtn', handleUndo);
+        bindEvent('redoBtn', handleRedo);
+        bindEvent('exportFileBtn', handleExportFile);
+        bindEvent('importStringBtn', handleImportString);
+        bindEvent('clearBtn', handleClear);
+        bindEvent('copyLiveStringBtn', handleCopyLiveString);
     }
 
     /**
      * Setup properties panel
+     * @private
      */
     function setupPropertiesPanel() {
-        // Brush size buttons (in info bar)
+        // Brush size buttons
         document.querySelectorAll('.tool-size-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const size = parseInt(btn.dataset.size);
-                Tools.setBrushSize(size);
+                if (window.ToolRegistry) {
+                    window.ToolRegistry.setToolOption('brushSize', size);
+                }
 
                 document.querySelectorAll('.tool-size-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
             });
         });
 
-        // Shape mode buttons (in info bar)
+        // Shape mode buttons
         document.querySelectorAll('.tool-mode-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const mode = btn.dataset.mode;
-                Tools.setShapeMode(mode);
+                if (window.ToolRegistry) {
+                    window.ToolRegistry.setToolOption('shapeMode', mode);
+                }
 
                 document.querySelectorAll('.tool-mode-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
@@ -156,53 +265,23 @@ const App = (function() {
         });
 
         // Resize button
-        document.getElementById('resizeBtn').addEventListener('click', handleResize);
+        bindEvent('resizeBtn', handleResize);
 
         // Enter key on inputs
         ['canvasWidth', 'canvasHeight'].forEach(id => {
-            document.getElementById(id).addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') handleResize();
-            });
-
-            document.getElementById(id).addEventListener('input', updateSizePresetHighlight);
-        });
-    }
-
-    /**
-     * Setup modal dialogs
-     */
-    function setupModals() {
-        // Import modal
-        const importModal = document.getElementById('importModal');
-        document.getElementById('closeImportModal').addEventListener('click', () => {
-            importModal.style.display = 'none';
-        });
-        document.getElementById('cancelImportBtn').addEventListener('click', () => {
-            importModal.style.display = 'none';
-        });
-        document.getElementById('confirmImportBtn').addEventListener('click', handleImportFromString);
-
-        importModal.addEventListener('click', (e) => {
-            if (e.target === importModal) {
-                importModal.style.display = 'none';
-            }
-        });
-
-        // File modal
-        const fileModal = document.getElementById('fileModal');
-        document.getElementById('closeModal').addEventListener('click', () => {
-            fileModal.style.display = 'none';
-        });
-
-        fileModal.addEventListener('click', (e) => {
-            if (e.target === fileModal) {
-                fileModal.style.display = 'none';
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') handleResize();
+                });
+                input.addEventListener('input', updateSizePresetHighlight);
             }
         });
     }
 
     /**
      * Setup keyboard shortcuts
+     * @private
      */
     function setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
@@ -211,37 +290,28 @@ const App = (function() {
                 return;
             }
 
-            // Tool shortcuts
-            const toolShortcuts = {
-                'b': Tools.TOOL_TYPES.BRUSH,
-                'p': Tools.TOOL_TYPES.PENCIL,
-                'e': Tools.TOOL_TYPES.ERASER,
-                'l': Tools.TOOL_TYPES.LINE,
-                'r': Tools.TOOL_TYPES.RECTANGLE,
-                'o': Tools.TOOL_TYPES.ELLIPSE,
-                'f': Tools.TOOL_TYPES.FILL,
-                'm': Tools.TOOL_TYPES.SELECT,
-                'w': Tools.TOOL_TYPES.MAGIC_WAND,
-                'v': Tools.TOOL_TYPES.MOVE,
-                'h': Tools.TOOL_TYPES.HAND
-            };
-
             const key = e.key.toLowerCase();
 
             // Escape key - clear selection
             if (e.key === 'Escape') {
                 e.preventDefault();
-                if (Tools.hasSelection()) {
-                    Tools.clearSelection();
-                    PixelCanvas.clearSelectionOverlay();
+                if (window.ToolRegistry) {
+                    window.ToolRegistry.clearSelection();
+                }
+                if (window.PixelCanvas) {
+                    window.PixelCanvas.clearSelectionOverlay();
                 }
                 return;
             }
 
-            if (toolShortcuts[key]) {
-                e.preventDefault();
-                Tools.setTool(toolShortcuts[key]);
-                return;
+            // Tool shortcuts
+            if (window.ToolRegistry && /^[a-z]$/.test(key)) {
+                const tool = window.ToolRegistry.getToolByShortcut(key.toUpperCase());
+                if (tool) {
+                    e.preventDefault();
+                    window.ToolRegistry.setCurrentTool(tool.getId());
+                    return;
+                }
             }
 
             // Keyboard shortcuts with Ctrl/Cmd
@@ -250,15 +320,12 @@ const App = (function() {
                     case 'z':
                         e.preventDefault();
                         if (e.shiftKey) {
-                            // Ctrl+Shift+Z = Redo
                             handleRedo();
                         } else {
-                            // Ctrl+Z = Undo
                             handleUndo();
                         }
                         break;
                     case 'y':
-                        // Ctrl+Y = Redo (alternative)
                         e.preventDefault();
                         handleRedo();
                         break;
@@ -279,27 +346,28 @@ const App = (function() {
         });
     }
 
+    // ==================== EVENT HANDLERS ====================
+
     /**
      * Handle tool change
-     * @param {string} toolType - New tool type
-     * @param {Object} toolInfo - Tool info
+     * @private
      */
-    function onToolChange(toolType, toolInfo) {
+    function onToolChange(toolId, toolConfig) {
         // Update tool buttons
         document.querySelectorAll('.tool-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tool === toolType);
+            btn.classList.toggle('active', btn.dataset.tool === toolId);
         });
 
         // Update current tool display
         const toolName = document.getElementById('currentToolName');
         if (toolName) {
-            toolName.textContent = toolInfo.name;
+            toolName.textContent = toolConfig.name;
         }
 
         // Update canvas cursor
         const canvasContainer = document.querySelector('.canvas-container');
         if (canvasContainer) {
-            canvasContainer.style.cursor = toolInfo.cursor;
+            canvasContainer.style.cursor = toolConfig.cursor;
         }
 
         // Show/hide tool options
@@ -307,35 +375,77 @@ const App = (function() {
         const shapeModeOption = document.getElementById('shapeModeOption');
 
         if (brushSizeOption) {
-            brushSizeOption.style.display = toolInfo.hasSizeOption ? 'flex' : 'none';
+            brushSizeOption.style.display = toolConfig.hasSizeOption ? 'flex' : 'none';
         }
 
         if (shapeModeOption) {
-            shapeModeOption.style.display = toolInfo.hasShapeOption ? 'flex' : 'none';
+            shapeModeOption.style.display = toolConfig.hasShapeOption ? 'flex' : 'none';
         }
+
+        logger.debug(`Tool changed to: ${toolConfig.name}`);
+    }
+
+    /**
+     * Handle tool option change
+     * @private
+     */
+    function onToolOptionChange(key, value, oldValue) {
+        logger.debug(`Tool option changed: ${key} = ${value}`);
     }
 
     /**
      * Handle color change
-     * @param {number} index - Color index
-     * @param {string} color - Color hex
+     * @private
      */
     function onColorChange(index, color) {
         const colorDisplay = document.getElementById('currentColorDisplay');
         if (colorDisplay) {
             colorDisplay.style.backgroundColor = color;
         }
+
+        // Update tool registry color
+        if (window.ToolRegistry) {
+            window.ToolRegistry.setToolOption('colorCode', index);
+        }
+    }
+
+    /**
+     * Handle canvas change
+     * @private
+     */
+    function onCanvasChange() {
+        updateLiveExportPreview();
+
+        // Mark tab as dirty
+        if (window.TabManager) {
+            window.TabManager.markCurrentTabDirty();
+        }
+
+        // Save state to history (debounced)
+        const debounceTime = constants?.history?.debounceTime || 500;
+        clearTimeout(window.historyDebounceTimer);
+        window.historyDebounceTimer = setTimeout(() => {
+            if (pixelCanvas && window.History) {
+                const currentState = window.PixelCanvas.exportToString();
+                window.History.pushState(currentState, 'Paint');
+            }
+        }, debounceTime);
     }
 
     /**
      * Update live export preview
+     * @private
      */
     function updateLiveExportPreview() {
-        const dataString = PixelCanvas.exportToString();
+        if (!window.PixelCanvas) return;
+
+        const dataString = window.PixelCanvas.exportToString();
         const liveExport = document.getElementById('liveExportString');
         const stringLength = document.getElementById('stringLength');
 
-        if (liveExport) {
+        if (liveExport && formatUtils) {
+            liveExport.textContent = formatUtils.formatDataString(dataString, 50);
+        } else if (liveExport) {
             liveExport.textContent = dataString;
         }
 
@@ -346,10 +456,11 @@ const App = (function() {
 
     /**
      * Update size preset highlighting
+     * @private
      */
     function updateSizePresetHighlight() {
-        const width = parseInt(document.getElementById('canvasWidth').value);
-        const height = parseInt(document.getElementById('canvasHeight').value);
+        const width = parseInt(document.getElementById('canvasWidth')?.value);
+        const height = parseInt(document.getElementById('canvasHeight')?.value);
 
         document.querySelectorAll('.preset-btn').forEach(btn => {
             const size = parseInt(btn.dataset.size);
@@ -357,98 +468,222 @@ const App = (function() {
         });
     }
 
-    /**
-     * Handle New
-     */
-    function handleNew() {
-        // Create new tab instead of clearing current
-        if (TabManager) {
-            TabManager.createNewTab();
+    // ==================== MENU HANDLERS ====================
+
+    async function handleNew() {
+        if (window.TabManager) {
+            window.TabManager.createNewTab();
         } else {
-            // Fallback to old behavior
-            if (confirm('Create a new pixel art? Unsaved changes will be lost.')) {
-                PixelCanvas.clear();
-                FileManager.clearCurrentFileName();
+            const confirmed = await window.Dialogs.confirm(
+                'Create New',
+                'Create a new pixel art? Unsaved changes will be lost.',
+                { confirmText: 'Create', type: 'warning' }
+            );
+
+            if (confirmed && pixelCanvas) {
+                window.PixelCanvas.clear();
+                if (window.FileManager) {
+                    window.FileManager.clearCurrentFileName();
+                }
                 updateLiveExportPreview();
             }
         }
     }
 
-    /**
-     * Handle Save
-     */
     async function handleSave() {
-        const dataString = PixelCanvas.exportToString();
+        if (!window.PixelCanvas || !window.FileManager) return;
 
-        // Get name from TabManager if available
-        let currentName = FileManager.getCurrentFileName();
-        if (TabManager) {
-            const tab = TabManager.getCurrentTab();
-            if (tab) {
-                currentName = tab.name;
-            }
+        const dataString = window.PixelCanvas.exportToString();
+        let currentName = window.FileManager.getCurrentFileName();
+
+        if (window.TabManager) {
+            const tab = window.TabManager.getCurrentTab();
+            if (tab) currentName = tab.name;
         }
 
-        const success = await FileManager.save(dataString, currentName);
+        const success = await window.FileManager.save(dataString, currentName);
 
         if (success) {
-            console.log('Saved successfully');
+            logger.info('Saved successfully');
 
-            // Mark tab as clean
-            if (TabManager) {
-                TabManager.markCurrentTabClean();
+            if (window.TabManager) {
+                window.TabManager.markCurrentTabClean();
             }
 
-            // Force autosave update
-            if (Autosave) {
-                Autosave.forceSave();
+            if (window.Autosave) {
+                window.Autosave.forceSave();
             }
         }
     }
 
-    /**
-     * Handle Undo
-     */
-    function handleUndo() {
-        if (!History.canUndo()) {
-            console.log('Nothing to undo');
+    function handleLoad() {
+        if (!window.PixelCanvas || !window.FileManager) return;
+
+        window.FileManager.showLoadDialog((file) => {
+            if (window.PixelCanvas.importFromString(file.data)) {
+                window.FileManager.setCurrentFileName(file.name);
+
+                if (window.TabManager) {
+                    window.TabManager.setCurrentTabName(file.name);
+                    window.TabManager.markCurrentTabClean();
+                }
+
+                updateCanvasSizeInputs();
+                updateLiveExportPreview();
+            }
+        });
+    }
+
+    async function handleExportFile() {
+        if (!window.PixelCanvas || !window.FileManager || !window.Dialogs) return;
+
+        let dataString = window.PixelCanvas.exportToString();
+        const filename = window.FileManager.getCurrentFileName() || 'pixelart';
+
+        const options = await window.Dialogs.exportDialog(dataString);
+        if (!options) return;
+
+        // Apply compression if requested
+        if (options.compress && window.Compression) {
+            const result = window.Compression.smartCompress(dataString);
+            dataString = result.data;
+        }
+
+        // Handle export format
+        switch (options.format) {
+            case 'copy-string':
+                await window.ClipboardUtils.copyWithFeedback(dataString);
+                await window.Dialogs.alert('Copied!', 'Pixel art string copied to clipboard.', 'success');
+                break;
+
+            case 'download-txt':
+                window.FileManager.exportAsFile(dataString, filename);
+                break;
+
+            case 'download-png':
+                if (window.PNGExport) {
+                    const scale = options.scale || 1;
+                    const pngFilename = filename.replace(/\.txt$/, '') + '.png';
+                    window.PNGExport.exportToPNG(scale, pngFilename);
+                    await window.Dialogs.alert('PNG Exported!', `Exported as ${pngFilename} at ${scale}× scale.`, 'success');
+                }
+                break;
+        }
+    }
+
+    function handleImportString() {
+        const modal = document.getElementById('importModal');
+        const textarea = document.getElementById('importTextarea');
+
+        if (modal && textarea) {
+            textarea.value = '';
+            modal.style.display = 'flex';
+            textarea.focus();
+        }
+    }
+
+    async function handleClear() {
+        if (!window.PixelCanvas || !window.Dialogs) return;
+
+        const confirmed = await window.Dialogs.confirm(
+            'Clear Canvas',
+            'Are you sure you want to clear the canvas? This cannot be undone.',
+            {
+                confirmText: 'Clear',
+                cancelText: 'Cancel',
+                type: 'warning',
+                dangerous: true
+            }
+        );
+
+        if (confirmed) {
+            window.PixelCanvas.clear();
+            updateLiveExportPreview();
+        }
+    }
+
+    async function handleCopyLiveString() {
+        if (!window.PixelCanvas) return;
+
+        const dataString = window.PixelCanvas.exportToString();
+        const btn = document.getElementById('copyLiveStringBtn');
+
+        await window.ClipboardUtils.copyWithFeedback(dataString, btn);
+    }
+
+    async function handleResize() {
+        if (!window.PixelCanvas || !window.Dialogs || !validationUtils) return;
+
+        const width = parseInt(document.getElementById('canvasWidth')?.value);
+        const height = parseInt(document.getElementById('canvasHeight')?.value);
+
+        const validation = validationUtils.validateCanvasDimensions(width, height);
+        if (!validation.valid) {
+            await window.Dialogs.alert('Invalid Size', validation.error, 'warning');
             return;
         }
 
-        const currentState = PixelCanvas.exportToString();
-        const previousState = History.undo(currentState);
+        const dataString = window.PixelCanvas.exportToString();
+        const hasContent = !dataString.split(':')[1].split('').every(c => c === '0');
+
+        if (hasContent) {
+            const confirmed = await window.Dialogs.confirm(
+                'Resize Canvas',
+                'Resizing may crop or add empty space to your artwork. Continue?',
+                { confirmText: 'Resize', type: 'warning' }
+            );
+
+            if (!confirmed) return;
+        }
+
+        if (window.PixelCanvas.resize(width, height)) {
+            updateLiveExportPreview();
+            updateSizePresetHighlight();
+
+            if (window.Viewport) {
+                window.Viewport.updateCanvasSize();
+            }
+        }
+    }
+
+    function handleUndo() {
+        if (!window.History || !window.PixelCanvas) return;
+
+        if (!window.History.canUndo()) {
+            logger.debug('Nothing to undo');
+            return;
+        }
+
+        const currentState = window.PixelCanvas.exportToString();
+        const previousState = window.History.undo(currentState);
 
         if (previousState) {
-            PixelCanvas.importFromString(previousState);
+            window.PixelCanvas.importFromString(previousState);
             updateCanvasSizeInputs();
             updateLiveExportPreview();
-            console.log('Undo performed');
+            logger.info('Undo performed');
         }
     }
 
-    /**
-     * Handle Redo
-     */
     function handleRedo() {
-        if (!History.canRedo()) {
-            console.log('Nothing to redo');
+        if (!window.History || !window.PixelCanvas) return;
+
+        if (!window.History.canRedo()) {
+            logger.debug('Nothing to redo');
             return;
         }
 
-        const currentState = PixelCanvas.exportToString();
-        const nextState = History.redo(currentState);
+        const currentState = window.PixelCanvas.exportToString();
+        const nextState = window.History.redo(currentState);
 
         if (nextState) {
-            PixelCanvas.importFromString(nextState);
+            window.PixelCanvas.importFromString(nextState);
             updateCanvasSizeInputs();
             updateLiveExportPreview();
-            console.log('Redo performed');
+            logger.info('Redo performed');
         }
     }
 
-    /**
-     * Update history UI (enable/disable buttons)
-     */
     function updateHistoryUI(state) {
         const undoBtn = document.getElementById('undoBtn');
         const redoBtn = document.getElementById('redoBtn');
@@ -468,293 +703,44 @@ const App = (function() {
         }
     }
 
-    /**
-     * Handle Load
-     */
-    function handleLoad() {
-        FileManager.showLoadDialog((file) => {
-            if (PixelCanvas.importFromString(file.data)) {
-                FileManager.setCurrentFileName(file.name);
-
-                // Update tab name
-                if (TabManager) {
-                    TabManager.setCurrentTabName(file.name);
-                    TabManager.markCurrentTabClean();
-                }
-
-                updateCanvasSizeInputs();
-                updateLiveExportPreview();
-            }
-        });
-    }
-
-    /**
-     * Handle Export File
-     */
-    async function handleExportFile() {
-        let dataString = PixelCanvas.exportToString();
-        const filename = FileManager.getCurrentFileName() || 'pixelart';
-
-        // Show export dialog with options
-        const options = await Dialogs.exportDialog(dataString);
-
-        if (!options) return; // User cancelled
-
-        // Apply compression if requested
-        if (options.compress && Compression) {
-            const result = Compression.smartCompress(dataString);
-            dataString = result.data;
-        }
-
-        // Handle different export formats
-        switch (options.format) {
-            case 'copy-string':
-                // Copy to clipboard
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(dataString).then(() => {
-                        Dialogs.alert('Copied!', 'Pixel art string copied to clipboard.', 'success');
-                    }).catch(() => {
-                        fallbackCopyString(dataString);
-                    });
-                } else {
-                    fallbackCopyString(dataString);
-                }
-                break;
-
-            case 'download-txt':
-                // Download as text file
-                FileManager.exportAsFile(dataString, filename);
-                break;
-
-            case 'download-png':
-                // Export as PNG
-                if (PNGExport) {
-                    const scale = options.scale || 1;
-                    const pngFilename = filename.replace(/\.txt$/, '') + '.png';
-                    PNGExport.exportToPNG(scale, pngFilename);
-                    await Dialogs.alert('PNG Exported!', `Exported as ${pngFilename} at ${scale}× scale.`, 'success');
-                } else {
-                    await Dialogs.alert('Error', 'PNG export not available.', 'error');
-                }
-                break;
-        }
-    }
-
-    /**
-     * Fallback copy method
-     */
-    function fallbackCopyString(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-
-        try {
-            document.execCommand('copy');
-            Dialogs.alert('Copied!', 'Pixel art string copied to clipboard.', 'success');
-        } catch (err) {
-            Dialogs.alert('Copy Failed', 'Failed to copy to clipboard. Please copy manually.', 'error');
-        }
-
-        document.body.removeChild(textarea);
-    }
-
-    /**
-     * Handle Import String
-     */
-    function handleImportString() {
-        const modal = document.getElementById('importModal');
-        const textarea = document.getElementById('importTextarea');
-
-        textarea.value = '';
-        modal.style.display = 'flex';
-        textarea.focus();
-    }
-
-    /**
-     * Handle Import from String
-     */
-    async function handleImportFromString() {
-        const textarea = document.getElementById('importTextarea');
-        const dataString = textarea.value.trim();
-
-        if (!dataString) {
-            await Dialogs.alert('Missing Data', 'Please paste a pixel art string first.', 'warning');
-            return;
-        }
-
-        if (PixelCanvas.importFromString(dataString)) {
-            document.getElementById('importModal').style.display = 'none';
-            updateCanvasSizeInputs();
-            updateLiveExportPreview();
-            FileManager.clearCurrentFileName();
-        }
-    }
-
-    /**
-     * Handle Copy Live String
-     */
-    function handleCopyLiveString() {
-        const dataString = PixelCanvas.exportToString();
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(dataString).then(() => {
-                showCopyFeedback();
-            }).catch(() => {
-                fallbackCopy(dataString);
-            });
-        } else {
-            fallbackCopy(dataString);
-        }
-    }
-
-    /**
-     * Fallback copy method
-     */
-    function fallbackCopy(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-
-        try {
-            document.execCommand('copy');
-            showCopyFeedback();
-        } catch (err) {
-            alert('Failed to copy');
-        }
-
-        document.body.removeChild(textarea);
-    }
-
-    /**
-     * Show copy feedback
-     */
-    function showCopyFeedback() {
-        const btn = document.getElementById('copyLiveStringBtn');
-        const icon = btn.querySelector('.material-symbols-outlined');
-        const originalIcon = icon.textContent;
-
-        icon.textContent = 'check';
-        btn.style.background = 'var(--success-color)';
-
-        setTimeout(() => {
-            icon.textContent = originalIcon;
-            btn.style.background = '';
-        }, 1000);
-    }
-
-    /**
-     * Handle Clear
-     */
-    async function handleClear() {
-        const confirmed = await Dialogs.confirm(
-            'Clear Canvas',
-            'Are you sure you want to clear the canvas? This cannot be undone.',
-            {
-                confirmText: 'Clear',
-                cancelText: 'Cancel',
-                type: 'warning',
-                dangerous: true
-            }
-        );
-
-        if (confirmed) {
-            PixelCanvas.clear();
-            updateLiveExportPreview();
-        }
-    }
-
-    /**
-     * Handle Resize
-     */
-    async function handleResize() {
-        const width = parseInt(document.getElementById('canvasWidth').value);
-        const height = parseInt(document.getElementById('canvasHeight').value);
-
-        if (isNaN(width) || isNaN(height)) {
-            await Dialogs.alert('Invalid Input', 'Please enter valid numbers for width and height.', 'warning');
-            return;
-        }
-
-        if (width < 2 || width > 128 || height < 2 || height > 128) {
-            await Dialogs.alert('Invalid Size', 'Canvas size must be between 2×2 and 128×128 pixels.', 'warning');
-            return;
-        }
-
-        const dataString = PixelCanvas.exportToString();
-        const hasContent = !dataString.split(':')[1].split('').every(c => c === '0');
-
-        if (hasContent) {
-            const confirmed = await Dialogs.confirm(
-                'Resize Canvas',
-                'Resizing may crop or add empty space to your artwork. Continue?',
-                {
-                    confirmText: 'Resize',
-                    cancelText: 'Cancel',
-                    type: 'warning'
-                }
-            );
-
-            if (!confirmed) {
-                return;
-            }
-        }
-
-        if (PixelCanvas.resize(width, height)) {
-            updateLiveExportPreview();
-            updateSizePresetHighlight();
-
-            // Update viewport if canvas size changed
-            if (Viewport) {
-                Viewport.updateCanvasSize();
-            }
-        }
-    }
-
-    /**
-     * Update canvas size inputs
-     */
     function updateCanvasSizeInputs() {
-        const dimensions = PixelCanvas.getDimensions();
-        document.getElementById('canvasWidth').value = dimensions.width;
-        document.getElementById('canvasHeight').value = dimensions.height;
+        if (!window.PixelCanvas) return;
+
+        const dimensions = window.PixelCanvas.getDimensions();
+        const widthInput = document.getElementById('canvasWidth');
+        const heightInput = document.getElementById('canvasHeight');
+
+        if (widthInput) widthInput.value = dimensions.width;
+        if (heightInput) heightInput.value = dimensions.height;
+
         updateSizePresetHighlight();
     }
 
-    /**
-     * Handle window resize
-     */
-    function handleWindowResize() {
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                const dimensions = PixelCanvas.getDimensions();
-                PixelCanvas.resize(dimensions.width, dimensions.height);
-                updateLiveExportPreview();
-            }, 250);
-        });
+    // ==================== UTILITY FUNCTIONS ====================
+
+    function bindEvent(elementId, handler) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.addEventListener('click', handler);
+        }
     }
+
+    // ==================== PUBLIC API ====================
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            init();
-            handleWindowResize();
-        });
+        document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
-        handleWindowResize();
     }
 
-    // Public API
     return {
         init,
         updateLiveExportPreview
     };
 })();
+
+// Make available globally
+if (typeof window !== 'undefined') {
+    window.App = App;
+}
