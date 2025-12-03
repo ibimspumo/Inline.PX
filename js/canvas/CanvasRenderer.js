@@ -43,23 +43,17 @@ function init(canvasElement, config = null) {
  * @returns {number} Optimal pixel size
  */
 function calculatePixelSize(width, height) {
-    const container = canvas.parentElement;
-    if (!container) {
-        return constants?.canvas?.defaultPixelSize || 30;
+    // Always use default pixel size - let Viewport handle zoom
+    // This ensures consistent base size that Viewport can scale
+    const defaultSize = constants?.canvas?.defaultPixelSize || 30;
+
+    // For very large canvases, scale down proportionally
+    const maxDimension = Math.max(width, height);
+    if (maxDimension > 64) {
+        return Math.max(8, Math.floor(defaultSize * (64 / maxDimension)));
     }
 
-    // Use available space in the canvas container
-    const maxWidth = container.clientWidth - 80;
-    const maxHeight = container.clientHeight - 80;
-
-    const pixelSizeW = Math.floor(maxWidth / width);
-    const pixelSizeH = Math.floor(maxHeight / height);
-
-    const minSize = constants?.canvas?.minPixelSize || 8;
-    const maxSize = constants?.canvas?.maxPixelSize || 50;
-
-    // Use the smaller of the two to fit both dimensions
-    return Math.max(minSize, Math.min(pixelSizeW, pixelSizeH, maxSize));
+    return defaultSize;
 }
 
 /**
