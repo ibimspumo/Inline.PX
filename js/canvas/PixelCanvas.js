@@ -150,9 +150,11 @@ function resize(newWidth, newHeight) {
     if (!PixelData || !CanvasRenderer) return false;
 
     if (PixelData.resize(newWidth, newHeight)) {
-        CanvasRenderer.updateCanvasSize(newWidth, newHeight);
+        // Preserve current pixelSize to maintain zoom level
+        const currentPixelSize = CanvasRenderer.getPixelSize();
+        CanvasRenderer.updateCanvasSize(newWidth, newHeight, currentPixelSize);
         if (SelectionOverlay) SelectionOverlay.updateSize();
-        
+
         updateSizeDisplay();
         handleChange();
         if (eventBus) eventBus.emit(eventBus.Events.CANVAS_RESIZED, { width: newWidth, height: newHeight });

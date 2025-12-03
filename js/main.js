@@ -68,6 +68,7 @@ async function init() {
         await initializeCoreSystems();
         initializeUI();
         setupKeyboardShortcuts();
+        setupEventListeners();
 
         initialized = true;
         logger.info('Inline.px ready!');
@@ -256,6 +257,18 @@ function setupKeyboardShortcuts() {
                 }
             }
         }
+    });
+}
+
+/**
+ * Setup EventBus listeners for cross-module communication
+ * @private
+ */
+function setupEventListeners() {
+    // Listen for FILE_LOADED event to update UI when tabs are switched or files loaded
+    eventBus.on(eventBus.Events.FILE_LOADED, () => {
+        updateCanvasSizeInputs();
+        updateLiveExportPreview();
     });
 }
 
