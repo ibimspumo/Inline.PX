@@ -31,6 +31,7 @@ import Viewport from './viewport.js';
 import History from './history.js';
 import Compression from './compression.js';
 import PNGExport from './pngExport.js';
+import ContextMenu from './contextMenu.js';
 
 // Tool Implementations
 import BrushTool from './tools/implementations/BrushTool.js';
@@ -99,6 +100,7 @@ async function initializeCoreSystems() {
     Autosave.init();
     Viewport.init();
     History.init({ onHistoryChange: updateHistoryUI });
+    ContextMenu.init();
 
     logger.info('Core systems initialized');
 }
@@ -137,6 +139,7 @@ function initializeUI() {
     setupMenuBar();
     setupPropertiesPanel();
     setupWelcomeScreen();
+    setupContextMenus();
     updateLiveExportPreview();
     updateSizePresetHighlight();
 }
@@ -278,6 +281,87 @@ function setupWelcomeScreen() {
     });
 
     logger.debug('Welcome screen setup complete');
+}
+
+/**
+ * Setup context menus for different UI areas
+ * @private
+ */
+function setupContextMenus() {
+    // Use event delegation on document for all context menus
+    document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        logger.info?.('Context menu triggered at:', e.clientX, e.clientY);
+
+        // Check if clicked on canvas
+        const canvasContainer = e.target.closest('#canvasContainer');
+        if (canvasContainer) {
+            const context = {
+                canUndo: History?.canUndo() || false,
+                canRedo: History?.canRedo() || false,
+                hasSelection: false, // TODO: Implement selection detection
+                hasClipboard: false // TODO: Implement clipboard check
+            };
+            ContextMenu.show(e.clientX, e.clientY, ContextMenu.getCanvasMenuItems(context), context);
+            return;
+        }
+
+        // Check if clicked on color palette
+        const colorSwatch = e.target.closest('.color-swatch');
+        if (colorSwatch) {
+            const colorIndex = parseInt(colorSwatch.dataset.index);
+            const color = ColorPalette.getColor(colorIndex);
+
+            const context = {
+                colorIndex: colorIndex,
+                color: colorSwatch.dataset.char || '0',
+                hex: color || '#000000'
+            };
+            ContextMenu.show(e.clientX, e.clientY, ContextMenu.getPaletteMenuItems(context), context);
+            return;
+        }
+
+        // Check if clicked on tab
+        const tab = e.target.closest('.tab');
+        if (tab) {
+            const tabId = tab.dataset.tabId;
+            const allTabs = TabManager?.getAllTabs() || [];
+
+            const context = {
+                tabId: tabId,
+                hasMultipleTabs: allTabs.length > 1
+            };
+            ContextMenu.show(e.clientX, e.clientY, ContextMenu.getTabMenuItems(context), context);
+            return;
+        }
+
+        // Check if clicked on file item
+        const fileItem = e.target.closest('.file-grid-item');
+        if (fileItem) {
+            logger.info?.('File item detected:', fileItem);
+            const fileName = fileItem.querySelector('.file-grid-name')?.textContent || 'Unknown';
+
+            const context = {
+                fileName: fileName,
+                fileElement: fileItem
+            };
+            ContextMenu.show(e.clientX, e.clientY, ContextMenu.getFileMenuItems(context), context);
+            return;
+        }
+
+        // Fallback: Show generic menu
+        logger.info?.('No specific target, showing generic menu');
+        ContextMenu.show(e.clientX, e.clientY, [
+            {
+                id: 'about',
+                label: 'About Inline.px',
+                icon: 'info',
+                action: () => console.log('About')
+            }
+        ], {});
+    });
+
+    logger.debug('Context menus setup complete');
 }
 
 /**
