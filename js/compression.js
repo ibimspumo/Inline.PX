@@ -3,12 +3,14 @@
  *
  * Provides optional compression for pixel art data strings
  * Uses Run-Length Encoding to compress repeated pixels
+ *
+ * @typedef {import('./types.js').CompressionStats} CompressionStats
  */
 
 /**
  * Compress data string using RLE
  * @param {string} dataString - Original data string (WxH:DATA)
- * @returns {Object} {compressed: string, original: string, savings: number}
+ * @returns {CompressionStats} Compression statistics
  */
 function compress(dataString) {
     const [dimensions, data] = dataString.split(':');

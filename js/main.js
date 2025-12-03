@@ -264,9 +264,14 @@ function setupKeyboardShortcuts() {
 function onToolChange(toolId, toolConfig) {
     document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tool === toolId));
     document.getElementById('currentToolName').textContent = toolConfig.name;
-    document.querySelector('.canvas-container').style.cursor = toolConfig.cursor;
-    document.getElementById('brushSizeOption').style.display = toolConfig.hasSizeOption ? 'flex' : 'none';
-    document.getElementById('shapeModeOption').style.display = toolConfig.hasShapeOption ? 'flex' : 'none';
+    document.querySelector('.canvas-container').style.cursor = toolConfig.cursor; // Dynamic cursor per tool
+
+    // Toggle visibility with CSS classes
+    const brushSizeOption = document.getElementById('brushSizeOption');
+    const shapeModeOption = document.getElementById('shapeModeOption');
+    brushSizeOption.classList.toggle('hidden', !toolConfig.hasSizeOption);
+    shapeModeOption.classList.toggle('hidden', !toolConfig.hasShapeOption);
+
     logger.debug(`Tool changed to: ${toolConfig.name}`);
 }
 
@@ -373,7 +378,8 @@ function handleImportString() {
     const textarea = document.getElementById('importTextarea');
     if (modal && textarea) {
         textarea.value = '';
-        modal.style.display = 'flex';
+        modal.classList.add('flex');
+        modal.classList.remove('hidden');
         textarea.focus();
     }
 }

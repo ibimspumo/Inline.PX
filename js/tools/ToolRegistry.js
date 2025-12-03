@@ -9,6 +9,12 @@
  * - Delegates state to ToolStateManager
  *
  * @module ToolRegistry
+ *
+ * @typedef {import('../types.js').ToolConfig} ToolConfig
+ * @typedef {import('../types.js').ToolOptions} ToolOptions
+ * @typedef {import('../types.js').DrawingContext} DrawingContext
+ * @typedef {import('../types.js').SelectionBounds} SelectionBounds
+ * @typedef {import('../types.js').PixelData} PixelData
  */
 
 import logger from '../core/Logger.js';
@@ -17,9 +23,13 @@ import * as StateManager from './ToolStateManager.js';
 import * as DrawingProxy from './ToolDrawingProxy.js';
 
 // Registry state
+/** @type {Map<string, BaseTool>} */
 const tools = new Map(); // id -> tool instance
+/** @type {Array<string>} */
 const toolOrder = []; // Ordered list of tool IDs
+/** @type {BaseTool|null} */
 let currentTool = null;
+/** @type {string|null} */
 let currentToolId = null;
 
 // Callbacks
@@ -48,7 +58,7 @@ function init(options = {}) {
 
 /**
  * Register a tool class
- * @param {class} ToolClass - Tool class (extends BaseTool)
+ * @param {typeof BaseTool} ToolClass - Tool class (extends BaseTool)
  * @returns {boolean} True if registered successfully
  */
 function registerTool(ToolClass) {
@@ -103,7 +113,7 @@ function registerTool(ToolClass) {
 
 /**
  * Register multiple tools at once
- * @param {Array<class>} toolClasses - Array of tool classes
+ * @param {Array<typeof BaseTool>} toolClasses - Array of tool classes
  * @returns {number} Number of tools registered
  */
 function registerTools(toolClasses) {
@@ -189,7 +199,7 @@ function setCurrentTool(id) {
 
 /**
  * Get current tool instance
- * @returns {Object|null} Current tool
+ * @returns {BaseTool|null} Current tool
  */
 function getCurrentTool() {
     return currentTool;
@@ -206,7 +216,7 @@ function getCurrentToolId() {
 /**
  * Get tool by ID
  * @param {string} id - Tool ID
- * @returns {Object|null} Tool instance
+ * @returns {BaseTool|null} Tool instance
  */
 function getTool(id) {
     return tools.get(id) || null;
@@ -214,7 +224,7 @@ function getTool(id) {
 
 /**
  * Get all registered tools
- * @returns {Array<Object>} Array of tool configs
+ * @returns {Array<ToolConfig>} Array of tool configs
  */
 function getAllTools() {
     return toolOrder.map(id => {
@@ -226,7 +236,7 @@ function getAllTools() {
 /**
  * Get tool by keyboard shortcut
  * @param {string} key - Keyboard key
- * @returns {Object|null} Tool instance
+ * @returns {BaseTool|null} Tool instance
  */
 function getToolByShortcut(key) {
     const upperKey = key.toUpperCase();

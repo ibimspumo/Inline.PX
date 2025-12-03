@@ -1,197 +1,581 @@
-# CLAUDE.md
+# CLAUDE.md - AI Development Guide for Inline.px
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This document provides context and guidance for AI assistants (Claude Code, GitHub Copilot, etc.) working on the Inline.px project.
 
-## Project Overview
+---
 
-**Inline.px** is a browser-based pixel art editor built with Vite and modern ES modules. The application exports to a single, self-contained HTML file that runs entirely client-side without dependencies. It uses a custom ultra-compact Base64-based format for pixel art storage with optional RLE compression.
+## 🎯 Project Overview
 
-## Common Commands
+**Inline.px** is a browser-based pixel art editor built with vanilla JavaScript and ES6 modules. The application compiles to a single HTML file (~128KB, gzipped: 34KB) using Vite and runs entirely client-side with zero backend dependencies.
 
-### Development
-```bash
-npm install           # Install dependencies
-npm run dev          # Start Vite dev server with hot-reload
-```
+**Key Characteristics:**
+- **Modular Architecture**: 43+ ES6 modules with clear separation of concerns
+- **Type Safety**: JSDoc TypeDefs for IntelliSense without TypeScript compilation
+- **Event-Driven**: EventBus for decoupled inter-module communication
+- **Config Validation**: Runtime validation for all configuration files
+- **Single-File Build**: Vite + vite-plugin-singlefile for distribution
 
-### Production Build
-```bash
-npm run build        # Bundle to single HTML file in docs/
-```
+---
 
-The production build outputs to `docs/index.html` as a single, self-contained file using `vite-plugin-singlefile`.
-
-## Architecture
-
-### Core Design Patterns
-
-1. **Event-Driven Architecture**: Central `EventBus` (`js/core/EventBus.js`) manages all inter-module communication. Modules emit and subscribe to events rather than direct coupling.
-
-2. **Tool Registry Pattern**: All drawing tools extend `BaseTool` (`js/tools/BaseTool.js`) and register with `ToolRegistry` (`js/tools/ToolRegistry.js`). The registry handles tool lifecycle (init, activate, deactivate, destroy) and shared state management.
-
-3. **Module Separation**: Canvas functionality is split into specialized modules:
-   - `PixelData.js`: Raw pixel data management (2D array of color indices)
-   - `CanvasRenderer.js`: Rendering logic
-   - `CanvasEvents.js`: User input handling
-   - `SelectionOverlay.js`: Selection visualization
-   - `PixelCanvas.js`: Orchestrates all canvas modules
-
-4. **Render Loop**: Main render loop in `PixelCanvas.js` runs via `requestAnimationFrame`, continuously rendering both the canvas and selection overlay with animated marching ants.
-
-### Data Format
-
-The pixel art format is `WxH:DATA` where:
-- `W` = width, `H` = height
-- `DATA` = Base64-encoded string (using custom 64-char alphabet from `config/colors.json`)
-- Each character represents a color index (0-63)
-- Color 0 is always transparent
-
-Optional RLE compression format: `WxH:RLE:COUNTCHAR` (e.g., "16x16:RLE:01a05b..." means 1×'a', 5×'b')
+## 🏗️ Architecture Overview
 
 ### Module Organization
 
 ```
 js/
-├── core/              # Core infrastructure
-│   ├── EventBus.js    # Pub/sub event system
-│   ├── Logger.js      # Logging utilities
-│   └── ConfigLoader.js # Loads JSON configs
-├── canvas/            # Canvas subsystem
-│   ├── PixelCanvas.js # Main orchestrator + render loop
-│   ├── PixelData.js   # Data management
-│   ├── CanvasRenderer.js # Rendering
-│   ├── CanvasEvents.js   # Input handling
-│   └── SelectionOverlay.js # Selection visuals
-├── tools/             # Tool system
-│   ├── BaseTool.js    # Abstract base class (refactored, 379 lines)
-│   ├── mixins/        # Tool mixins for composition
-│   │   ├── ToolHelpers.js      # Shared helper functions
+├── main.js                      # Application entry point
+├── types.js                     # Global JSDoc type definitions
+│
+├── core/                        # Core systems (8 modules)
+│   ├── EventBus.js              # Event-driven communication
+│   ├── Logger.js                # Logging system with levels
+│   ├── ConfigLoader.js          # ES module config loader
+│   └── ...
+│
+├── canvas/                      # Canvas rendering (5 modules)
+│   ├── PixelCanvas.js           # Main canvas controller
+│   ├── CanvasRenderer.js        # Drawing operations
+│   ├── CanvasInputHandler.js   # Mouse/touch input
+│   └── ...
+│
+├── tools/                       # Drawing tools (15+ modules)
+│   ├── BaseTool.js              # Base tool class (379 lines)
+│   ├── ToolRegistry.js          # Tool management (325 lines)
+│   ├── ToolStateManager.js      # Shared state management
+│   ├── ToolDrawingProxy.js      # Drawing delegation
+│   ├── mixins/                  # Tool composition
+│   │   ├── ToolHelpers.js       # Helper functions
 │   │   ├── ToolSelectionMixin.js # Selection support
 │   │   └── ToolEventMixin.js    # Event handling
-│   ├── ToolRegistry.js # Tool registration & lifecycle
-│   └── implementations/ # Concrete tools (BrushTool, etc.)
-├── dialogs/           # Dialog system (refactored, modular)
-│   ├── DialogCore.js       # Core dialog functionality
-│   ├── DialogHelpers.js    # Utility functions
-│   └── ExportDialog.js     # Specialized export dialog
-├── utils/             # Utilities
-│   ├── ValidationUtils.js
-│   ├── FormatUtils.js
-│   ├── ClipboardUtils.js
-│   └── StorageUtils.js     # Safe localStorage wrapper (NEW)
-├── main.js            # Application entry point
-├── dialogs.js         # Dialog system facade (refactored, 180 lines)
-├── compression.js     # RLE compression
-├── colorPalette.js    # 64-color palette management
-├── fileManager.js     # File save/load (uses StorageUtils)
-├── tabManager.js      # Multi-tab workspace (improved error handling)
-├── autosave.js        # Auto-save (uses StorageUtils)
-├── viewport.js        # Zoom/pan (with blur handler fix)
-├── history.js         # Undo/redo system
-└── pngExport.js       # PNG export functionality
+│   ├── PenTool.js               # Pen implementation
+│   ├── LineTool.js              # Line tool
+│   └── ...
+│
+├── dialogs/                     # Dialog system (3 modules)
+│   ├── DialogCore.js            # Core dialog functionality
+│   ├── DialogHelpers.js         # Utility functions
+│   └── ExportDialog.js          # Export dialog (232 lines)
+│
+├── utils/                       # Utility modules (5 modules)
+│   ├── StorageUtils.js          # localStorage wrapper
+│   ├── ConfigValidator.js       # Config validation
+│   └── ...
+│
+├── fileManager.js               # File operations (403 lines)
+├── tabManager.js                # Multi-tab interface (473 lines)
+├── autosave.js                  # Autosave system
+├── viewport.js                  # Zoom & pan
+├── colorPalette.js              # Color management
+├── compression.js               # RLE compression
+└── History.js                   # Undo/redo
 ```
 
-### Configuration
+---
 
-- `config/constants.json`: App constants (canvas limits, history size, etc.)
-- `config/colors.json`: 64-color palette with hex values and Base64 alphabet
-- Both configs loaded at runtime via `ConfigLoader.js`
+## 🔑 Key Design Patterns
 
-## Critical Implementation Details
+### 1. Mixin Pattern (BaseTool)
 
-### Tool Development
+BaseTool uses composition over inheritance:
 
-All tools must extend `BaseTool` and implement three methods:
-- `onDrawStart(x, y, pixelData, context)` - Mouse down
-- `onDrawContinue(x, y, pixelData, context)` - Mouse move while drawing
-- `onDrawEnd(x, y, pixelData, context)` - Mouse up
+```javascript
+import { withEvents } from './mixins/ToolEventMixin.js';
+import { withSelection } from './mixins/ToolSelectionMixin.js';
 
-Tools must define a static `CONFIG` object with `id`, `name`, `icon`, `shortcut`, `cursor`, etc.
+// Compose mixins
+class BaseTool extends withEvents(withSelection(BaseToolCore)) {
+    // Tool implementation
+}
+```
 
-Shape tools (Rectangle, Ellipse, Line) use the preview system: set `needsPreview()` to return `true`, and `BaseTool` will automatically save/restore pixel data for live preview.
+### 2. Delegation Pattern (ToolRegistry)
 
-### Shared Tool Options
+ToolRegistry delegates to specialized modules:
 
-Options like `brushSize`, `shapeMode`, and `colorCode` are managed centrally in `ToolRegistry` and synced to tools when activated. Changes propagate to all tools via callbacks.
+```javascript
+const ToolRegistry = {
+    // State management delegated
+    setToolOption: StateManager.setToolOption,
+    getToolOption: StateManager.getToolOption,
 
-### Selection System
+    // Drawing operations delegated
+    startDrawing: DrawingProxy.startDrawing,
+    continueDrawing: DrawingProxy.continueDrawing
+};
+```
 
-- `SelectTool` creates rectangular selections (stored in tool state as `selectionBounds`)
-- `MagicWandTool` creates selections via flood-fill algorithm
-- `MoveTool` moves selected content (uses temporary `movePreview` data structure)
-- Most tools respect selection bounds (check `isInSelection()` from `BaseTool`)
-- Selection overlay renders with animated dashed border (dashOffset increments each frame)
+### 3. Facade Pattern (Dialogs)
 
-### Canvas Coordinate System
+Dialogs provides a clean API wrapping complex dialog logic:
 
-- Canvas uses pixel grid coordinates (integers)
-- `CanvasEvents.js` converts mouse screen coordinates to grid coordinates
-- All tools work with grid coordinates, not screen pixels
-- Viewport zoom/pan handled separately by `Viewport.js`
+```javascript
+// Simple API
+await Dialogs.alert('Title', 'Message', 'success');
+const confirmed = await Dialogs.confirm('Title', 'Message');
+const value = await Dialogs.prompt('Title', 'Message', 'default');
 
-### Undo/Redo System
+// Complex logic hidden in DialogCore
+```
 
-Implemented in `history.js` with debounced state capture:
-- Canvas changes trigger `onCanvasChange()` in main.js
-- After 300ms debounce, full canvas state is saved to history
-- History is a stack of compressed data strings
-- Undo/redo restores entire canvas state via `importFromString()`
+### 4. Event-Driven Architecture
 
-### File Management
+EventBus enables decoupled communication:
 
-`FileManager` handles:
-- Save/load to browser localStorage (key: "pixelArt_saved_{name}")
-- Export to .txt file (contains data string)
-- List saved files for loading dialog
-- Current filename tracking for save operations
+```javascript
+// Module A emits event
+eventBus.emit('canvas:change', { width: 32, height: 32 });
 
-### Tab System
+// Module B subscribes
+eventBus.on('canvas:change', (data) => {
+    console.log('Canvas changed:', data);
+});
+```
 
-`TabManager` provides multi-tab workspace:
-- Each tab has: `id`, `name`, `data` (pixel art string), `isDirty` flag
-- Active tab state loaded into main canvas
-- Switching tabs saves current canvas state to tab
-- Dirty flag indicates unsaved changes
+---
 
-### Autosave
+## 📦 Data Structures
 
-`Autosave` module runs every 30 seconds:
-- Saves current canvas state to localStorage
-- Shows visual indicator when saving
-- Recovers state on page reload if available
+### Pixel Data Format
 
-## Important Notes
+**Standard Format:**
+```
+WxH:DATA
+```
+Example: `16x16:0000111122223333...` (256 characters)
 
-### Module Loading
+**Compressed Format (RLE):**
+```
+WxH:RLE:COMPRESSED_DATA
+```
+Example: `16x16:RLE:1601115012203230...` (count+char pairs)
 
-All modules are ES6 modules loaded via Vite. In development, imports work natively. In production, Vite bundles everything into inline scripts in a single HTML file.
+### Base64 Color System
 
-### Vite Configuration
+- **64 colors** mapped to Base64 characters: `0-9A-Za-z+/`
+- Each character represents a color index (0-63)
+- Index 0: Transparent (`#00000000`)
+- Index 1: Black (`#000000`)
+- Index 63: White (`#FFFFFF`)
 
-`vite.config.js` uses `vite-plugin-singlefile` to inline all JS/CSS into `docs/index.html`. The result is a standalone file with zero external dependencies.
+### Common TypeDefs
 
-### Browser APIs Used
+```javascript
+/**
+ * @typedef {Object} TabData
+ * @property {string} id - Unique tab identifier
+ * @property {string} name - Display name
+ * @property {number} width - Canvas width
+ * @property {number} height - Canvas height
+ * @property {string} data - Pixel data string
+ * @property {boolean} isDirty - Unsaved changes flag
+ * @property {number} created - Creation timestamp
+ * @property {number} modified - Last modified timestamp
+ */
 
-- Canvas 2D API for rendering
-- localStorage for persistence
-- Clipboard API for copy/paste
-- requestAnimationFrame for render loop
-- No external libraries or frameworks
+/**
+ * @typedef {Object} ToolConfig
+ * @property {string} id - Unique tool identifier
+ * @property {string} name - Display name
+ * @property {string} icon - SVG path data
+ * @property {string} cursor - CSS cursor name
+ * @property {string} shortcut - Keyboard shortcut key
+ * @property {string} description - Tool description
+ * @property {boolean} supportsSelection - Selection support flag
+ */
 
-### Color Palette
+/**
+ * @typedef {Object} DrawingContext
+ * @property {Array<Array<number>>} pixelData - 2D pixel array
+ * @property {number} width - Canvas width
+ * @property {number} height - Canvas height
+ * @property {number} color - Current color index
+ */
+```
 
-Fixed 64-color palette defined in `config/colors.json`. Colors map to Base64 characters (0-9, A-Z, a-z, +, /). Index 0 is always transparent (#00000000).
+All TypeDefs are in `js/types.js`.
 
-`ColorPalette.js` provides:
-- `getBase64Char(index)` - Convert color index to character
-- `getIndexFromChar(char)` - Convert character to color index
-- `getHexColor(index)` - Get hex color for rendering
+---
 
-### Validation
+## 🛠️ Common Development Tasks
 
-`ValidationUtils` validates:
-- Canvas dimensions (4-512 pixels, must be integers)
-- Data string format (matches WxH:DATA or WxH:RLE:DATA)
-- Color indices (0-63 range)
+### Adding a New Tool
 
-Initialize with constants before use: `ValidationUtils.init(constants)`
+See detailed instructions in README.md, section "Creating New Tools".
+
+**Quick steps:**
+1. Create `js/tools/MyTool.js` extending `BaseTool`
+2. Define `static CONFIG` with tool metadata
+3. Implement `onStart()`, `onMove()`, `onEnd()`
+4. Register in `js/main.js`: `ToolRegistry.registerTools([..., MyTool])`
+5. Add button to `index.html`
+
+### Adding a New Module
+
+```javascript
+// 1. Create module file
+// js/myModule.js
+
+import logger from './core/Logger.js';
+
+/**
+ * MyModule - Description
+ *
+ * @typedef {Object} MyDataType
+ * @property {string} id
+ * @property {string} name
+ */
+
+let moduleState = null;
+
+function init() {
+    logger.info?.('MyModule initialized');
+}
+
+const MyModule = {
+    init,
+    // Export public API
+};
+
+export default MyModule;
+
+// 2. Import in main.js
+import MyModule from './myModule.js';
+
+// 3. Initialize in init sequence
+MyModule.init();
+```
+
+### Modifying Configuration
+
+**Colors (`config/colors.js`):**
+- Must have exactly 64 colors
+- Each color needs: `index`, `char`, `color`, `name`, `category`
+- Validated by `ConfigValidator.validateColorsConfig()`
+
+**Constants (`config/constants.js`):**
+- Canvas settings: `minSize`, `maxSize`, `defaultWidth`, `defaultHeight`, `minPixelSize`, `maxPixelSize`, `defaultPixelSize`
+- History settings: `maxStates`, `debounceTime`
+- Autosave settings: `interval`, `debounceTime`
+- Validated by `ConfigValidator.validateConstantsConfig()`
+
+**Validation happens at startup** - check browser console for errors.
+
+### Adding JSDoc Types
+
+```javascript
+// 1. Add typedef to js/types.js
+/**
+ * @typedef {Object} MyNewType
+ * @property {string} id
+ * @property {number} value
+ */
+
+// 2. Import in your module
+/**
+ * @typedef {import('./types.js').MyNewType} MyNewType
+ */
+
+// 3. Use in function signatures
+/**
+ * Process data
+ * @param {MyNewType} data - Data to process
+ * @returns {boolean} Success flag
+ */
+function processData(data) {
+    // Full IntelliSense support
+}
+```
+
+---
+
+## 🔍 Code Quality Standards
+
+### File Size Guidelines
+
+- **Optimal**: 150-300 lines per file
+- **Maximum**: 400 lines per file
+- **Critical**: >500 lines (must be refactored)
+
+**Current largest files:**
+- `BaseTool.js`: 379 lines ✅
+- `fileManager.js`: 403 lines ✅
+- `tabManager.js`: 473 lines ✅
+
+### Coding Conventions
+
+1. **ES6+ Features**: Use arrow functions, destructuring, template literals
+2. **JSDoc Comments**: All public functions must have JSDoc
+3. **Logger Usage**: Use `logger.debug?.()`, `logger.info?.()`, etc. (never `console.log`)
+4. **Optional Chaining**: Always use `?.` for logger methods
+5. **Error Handling**: Use try-catch blocks, handle localStorage quota
+6. **CSS Classes**: Prefer CSS classes over inline styles
+7. **Event Cleanup**: Remove event listeners in destroy/cleanup methods
+
+### Example: Proper Function Documentation
+
+```javascript
+/**
+ * Create a new tab with specified dimensions
+ * @param {string|null} name - Tab name (null for auto-generated)
+ * @param {number} width - Canvas width in pixels
+ * @param {number} height - Canvas height in pixels
+ * @param {string|null} data - Optional pixel data string
+ * @returns {TabData} Created tab object
+ */
+function createNewTab(name = null, width = 16, height = 16, data = null) {
+    // Validate inputs
+    if (width < 2 || height < 2) {
+        logger.error?.('Invalid canvas dimensions');
+        return null;
+    }
+
+    // Implementation
+    const tab = {
+        id: generateId(),
+        name: name || `Untitled-${++tabCounter}`,
+        width,
+        height,
+        data: data || generateEmptyData(width, height),
+        isDirty: false,
+        created: Date.now(),
+        modified: Date.now()
+    };
+
+    logger.info?.(`Tab created: ${tab.name}`);
+    return tab;
+}
+```
+
+---
+
+## 🚀 Build & Development
+
+### Development Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server (http://localhost:5173)
+npm run dev
+
+# Build for production (output: docs/index.html)
+npm run build
+
+# Preview build locally
+npm run preview
+```
+
+### Build Configuration
+
+**vite.config.js:**
+```javascript
+import { defineConfig } from 'vite';
+import { viteSingleFile } from 'vite-plugin-singlefile';
+
+export default defineConfig({
+    plugins: [viteSingleFile()],
+    build: {
+        outDir: 'docs',
+        assetsInlineLimit: 100000000
+    }
+});
+```
+
+**Important**: The build output (`docs/index.html`) is a single, self-contained HTML file that includes all CSS and JS inline.
+
+### Testing Before Commit
+
+```bash
+# 1. Build the project
+npm run build
+
+# 2. Check build output
+ls -lh docs/index.html
+
+# 3. Open in browser
+open docs/index.html
+
+# 4. Test core features
+# - Draw with tools
+# - Undo/Redo
+# - Multi-tab workflow
+# - Save/Load
+# - Export
+# - Zoom/Pan
+```
+
+---
+
+## 🐛 Common Issues & Solutions
+
+### Issue: Build fails with module resolution error
+
+**Cause**: Missing or incorrect import path
+
+**Solution**: Ensure all imports use `.js` extension
+```javascript
+// ✅ Correct
+import logger from './core/Logger.js';
+
+// ❌ Wrong
+import logger from './core/Logger';
+```
+
+### Issue: Config validation error on startup
+
+**Cause**: Invalid `colors.js` or `constants.js`
+
+**Solution**: Check browser console for specific validation errors. Common issues:
+- Wrong number of colors (must be 64)
+- Missing required properties
+- Invalid property types
+
+### Issue: Tool not registering
+
+**Cause**: Missing `static CONFIG` or not imported in `main.js`
+
+**Solution**:
+1. Verify tool has `static CONFIG` property
+2. Import tool in `main.js`
+3. Add to `ToolRegistry.registerTools()` array
+
+### Issue: Memory leak with event listeners
+
+**Cause**: Event listeners not removed on cleanup
+
+**Solution**: Track and remove listeners:
+```javascript
+function showDialog() {
+    // Store handler references
+    const closeHandler = () => { /* ... */ };
+
+    // Add listeners
+    button.addEventListener('click', closeHandler);
+
+    // Remove on cleanup
+    button.removeEventListener('click', closeHandler);
+}
+```
+
+### Issue: localStorage quota exceeded
+
+**Cause**: Too many saved files or large canvas sizes
+
+**Solution**: Use `StorageUtils.isQuotaExceeded()` to detect and handle:
+```javascript
+if (!StorageUtils.setJSON(key, data)) {
+    if (StorageUtils.isQuotaExceeded()) {
+        await Dialogs.alert('Storage Full', 'Please delete some files.');
+    }
+}
+```
+
+---
+
+## 📋 Refactoring History
+
+### Completed Refactorings
+
+**Phase 1: Large File Splitting**
+- `BaseTool.js`: 619 → 379 lines (-38.8%)
+  - Created mixins: `ToolHelpers.js`, `ToolSelectionMixin.js`, `ToolEventMixin.js`
+- `dialogs.js`: 476 → 180 lines (-62.2%)
+  - Split into: `DialogCore.js`, `DialogHelpers.js`, `ExportDialog.js`
+- Created `StorageUtils.js` for localStorage abstraction
+
+**Phase 2: Tool System Refactoring**
+- `ToolRegistry.js`: 485 → 325 lines (-33%)
+  - Created: `ToolStateManager.js`, `ToolDrawingProxy.js`
+- Created `utilities.css` with 50+ utility classes
+- Migrated 36% of inline styles to CSS classes
+
+**Phase 3: Type Safety & Validation**
+- Created `types.js` with 14 global TypeDefs
+- Added JSDoc to 9 core modules
+- Created `ConfigValidator.js` for runtime validation
+- Integrated validation into `ConfigLoader.js`
+
+**Phase 4 & 5: Polish & Coverage**
+- Migrated remaining inline styles in `main.js`
+- Improved event listener cleanup in `fileManager.js`
+- Extended TypeDef coverage to 6 additional modules
+
+**Current Status:**
+- ✅ No files >500 lines
+- ✅ All core modules have TypeDefs
+- ✅ Config validation active
+- ✅ Clean event listener management
+- ✅ Minimal inline styles (only dynamic values)
+
+---
+
+## 🎯 Future Enhancement Ideas
+
+### Priority: High
+- [ ] Add PNG import functionality
+- [ ] Implement layer system
+- [ ] Add custom keyboard shortcuts
+- [ ] Create tool presets system
+
+### Priority: Medium
+- [ ] Add animation/frame support
+- [ ] Implement symmetry drawing modes
+- [ ] Add grid overlay options
+- [ ] Create color palette import/export
+
+### Priority: Low
+- [ ] Add brush texture support
+- [ ] Implement gradient fill tool
+- [ ] Add SVG export option
+- [ ] Create plugin system for extensions
+
+---
+
+## 📚 Useful References
+
+### Documentation
+- **README.md**: User-facing documentation with quick start guide
+- **js/types.js**: All TypeDef definitions
+- **config/**: Configuration file examples
+
+### External Resources
+- [Vite Documentation](https://vitejs.dev/)
+- [JSDoc Reference](https://jsdoc.app/)
+- [MDN Web APIs](https://developer.mozilla.org/en-US/docs/Web/API)
+
+---
+
+## 🤖 Tips for AI Assistants
+
+### When Modifying Code
+
+1. **Always read files before editing** - Don't guess file contents
+2. **Use JSDoc TypeDefs** - Check `types.js` for existing types
+3. **Follow naming conventions** - Analyze existing code patterns
+4. **Test builds** - Run `npm run build` after changes
+5. **Check browser console** - Config validation runs on startup
+
+### When Creating New Features
+
+1. **Check existing patterns** - Look for similar implementations
+2. **Add TypeDefs** - Document all new data structures
+3. **Use EventBus** - Prefer events over direct coupling
+4. **Handle errors gracefully** - Use try-catch and logger
+5. **Keep files small** - Split if approaching 400 lines
+
+### When Refactoring
+
+1. **Identify dependencies** - Use grep to find all usages
+2. **Maintain backward compatibility** - Don't break existing APIs
+3. **Test incrementally** - Build and test after each change
+4. **Update documentation** - Modify this file if architecture changes
+5. **Preserve types** - Maintain or improve JSDoc coverage
+
+---
+
+**Last Updated**: 2025-12-03
+**Architecture Version**: 5.0 (Post-refactoring)
+**Module Count**: 43+ modules
+**Largest File**: 473 lines (tabManager.js)
+**TypeDef Coverage**: ~21% (9/43 modules)

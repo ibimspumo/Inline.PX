@@ -6,6 +6,10 @@
  * - Visual indicator showing save status
  * - Debouncing to prevent excessive saves
  * - Last saved timestamp display
+ *
+ * @typedef {Object} AutosaveData
+ * @property {string} data - Pixel data string
+ * @property {number} timestamp - Save timestamp
  */
 
 import logger from './core/Logger.js';

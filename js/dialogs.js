@@ -5,6 +5,10 @@
  * Provides consistent UX across the application
  *
  * @module Dialogs
+ *
+ * @typedef {import('./types.js').ConfirmOptions} ConfirmOptions
+ * @typedef {import('./types.js').PromptOptions} PromptOptions
+ * @typedef {import('./types.js').ExportResult} ExportResult
  */
 
 import logger from './core/Logger.js';

@@ -9,6 +9,7 @@
 import logger from './Logger.js';
 import ColorConfig from '../../config/colors.js';
 import Constants from '../../config/constants.js';
+import ConfigValidator from '../utils/ConfigValidator.js';
 
 const cache = {};
 
@@ -48,6 +49,14 @@ async function load(path) {
  */
 async function loadColors() {
     logger.debug?.('Colors loaded from ES module (static)');
+
+    // Validate config
+    const validation = ConfigValidator.validateColorsConfig(STATIC_COLORS);
+    if (!validation.valid) {
+        logger.error?.('Colors config validation failed:', validation.errors);
+        throw new Error(`Invalid colors config: ${validation.errors.join(', ')}`);
+    }
+
     return STATIC_COLORS;
 }
 
@@ -57,6 +66,14 @@ async function loadColors() {
  */
 async function loadConstants() {
     logger.debug?.('Constants loaded from ES module (static)');
+
+    // Validate config
+    const validation = ConfigValidator.validateConstantsConfig(STATIC_CONSTANTS);
+    if (!validation.valid) {
+        logger.error?.('Constants config validation failed:', validation.errors);
+        throw new Error(`Invalid constants config: ${validation.errors.join(', ')}`);
+    }
+
     return STATIC_CONSTANTS;
 }
 

@@ -3,6 +3,11 @@
  *
  * Manages canvas history for undo/redo functionality.
  * Stores snapshots of canvas state with efficient memory management.
+ *
+ * @typedef {Object} HistoryState
+ * @property {string} data - Canvas data string
+ * @property {string} action - Action description
+ * @property {number} timestamp - State timestamp
  */
 
 import logger from './core/Logger.js';

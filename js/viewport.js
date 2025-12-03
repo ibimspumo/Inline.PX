@@ -8,6 +8,12 @@
  * - Zoom presets (25%, 50%, 100%, 200%, 400%)
  * - Fit to screen
  * - Reset zoom and pan
+ *
+ * @typedef {Object} ViewportState
+ * @property {number} zoom - Zoom level (0.1-10.0)
+ * @property {number} panX - Pan X offset in pixels
+ * @property {number} panY - Pan Y offset in pixels
+ * @property {boolean} isPanning - Currently panning flag
  */
 
 import ToolRegistry from './tools/ToolRegistry.js';

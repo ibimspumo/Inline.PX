@@ -12,6 +12,9 @@
  * - Key: "pixelart_files"
  * - Value: JSON array of file objects
  * - Each file: {id, name, data, timestamp, width, height}
+ *
+ * @typedef {import('./types.js').SavedFile} SavedFile
+ * @typedef {import('./types.js').StorageStats} StorageStats
  */
 
 import logger from './core/Logger.js';
@@ -19,11 +22,16 @@ import Dialogs from './dialogs.js';
 import StorageUtils from './utils/StorageUtils.js';
 
 const STORAGE_KEY = 'pixelart_files';
+/** @type {string|null} */
 let currentFileName = null;
+
+// Track modal event handlers for cleanup
+let modalCloseHandler = null;
+let modalOutsideClickHandler = null;
 
 /**
  * Get all saved files from LocalStorage
- * @returns {Array} Array of file objects
+ * @returns {Array<SavedFile>} Array of file objects
  */
 function getAllFiles() {
     const files = StorageUtils.getJSON(STORAGE_KEY, []);
@@ -32,7 +40,7 @@ function getAllFiles() {
 
 /**
  * Save files array to LocalStorage
- * @param {Array} files - Array of file objects
+ * @param {Array<SavedFile>} files - Array of file objects
  * @returns {Promise<boolean>} Success status
  */
 async function saveAllFiles(files) {
@@ -133,7 +141,7 @@ async function save(dataString, name = null) {
 /**
  * Load a file from LocalStorage by ID
  * @param {string} id - File ID
- * @returns {Object|null} File object or null if not found
+ * @returns {SavedFile|null} File object or null if not found
  */
 function load(id) {
     const files = getAllFiles();
@@ -237,7 +245,7 @@ function formatDate(timestamp) {
 
 /**
  * Get storage usage statistics
- * @returns {Object} Storage stats {used, total, percentage}
+ * @returns {StorageStats|null} Storage stats {used, total, percentage}
  */
 function getStorageStats() {
     return StorageUtils.getStorageStats();
@@ -254,8 +262,16 @@ function showLoadDialog(onSelectCallback) {
     const closeBtn = document.getElementById('closeModal');
 
     if (!modal || !fileList) {
-        logger.error('Modal elements not found');
+        logger.error?.('Modal elements not found');
         return;
+    }
+
+    // Remove old event listeners to prevent memory leaks
+    if (modalCloseHandler) {
+        closeBtn.removeEventListener('click', modalCloseHandler);
+    }
+    if (modalOutsideClickHandler) {
+        modal.removeEventListener('click', modalOutsideClickHandler);
     }
 
     // Get files
@@ -284,22 +300,24 @@ function showLoadDialog(onSelectCallback) {
     modal.classList.remove('hidden');
 
     // Close button handler
-    const closeHandler = () => {
+    modalCloseHandler = () => {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
-        closeBtn.removeEventListener('click', closeHandler);
-        modal.removeEventListener('click', outsideClickHandler);
+        closeBtn.removeEventListener('click', modalCloseHandler);
+        modal.removeEventListener('click', modalOutsideClickHandler);
+        modalCloseHandler = null;
+        modalOutsideClickHandler = null;
     };
 
     // Click outside to close
-    const outsideClickHandler = (e) => {
+    modalOutsideClickHandler = (e) => {
         if (e.target === modal) {
-            closeHandler();
+            modalCloseHandler();
         }
     };
 
-    closeBtn.addEventListener('click', closeHandler);
-    modal.addEventListener('click', outsideClickHandler);
+    closeBtn.addEventListener('click', modalCloseHandler);
+    modal.addEventListener('click', modalOutsideClickHandler);
 }
 
 /**

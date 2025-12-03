@@ -7,6 +7,8 @@
  * - New tab creation
  * - Tab closing with unsaved warning
  * - Tab renaming
+ *
+ * @typedef {import('./types.js').TabData} TabData
  */
 
 import logger from './core/Logger.js';
@@ -16,8 +18,11 @@ import Autosave from './autosave.js';
 import Compression from './compression.js';
 import StorageUtils from './utils/StorageUtils.js';
 
+/** @type {Array<TabData>} */
 let tabs = [];
+/** @type {string|null} */
 let currentTabId = null;
+/** @type {number} */
 let tabCounter = 0;
 
 /**
@@ -65,10 +70,11 @@ function createTabBar() {
 
 /**
  * Create a new tab
- * @param {string} name - Tab name
+ * @param {string|null} name - Tab name
  * @param {number} width - Canvas width
  * @param {number} height - Canvas height
- * @param {string} data - Optional pixel data
+ * @param {string|null} data - Optional pixel data
+ * @returns {TabData} Created tab
  */
 function createNewTab(name = null, width = 16, height = 16, data = null) {
     tabCounter++;
@@ -338,7 +344,7 @@ function markCurrentTabClean() {
 
 /**
  * Get current tab
- * @returns {Object|null} Current tab object
+ * @returns {TabData|null} Current tab object
  */
 function getCurrentTab() {
     return tabs.find(t => t.id === currentTabId) || null;
@@ -346,7 +352,7 @@ function getCurrentTab() {
 
 /**
  * Get all tabs
- * @returns {Array} Array of tab objects
+ * @returns {Array<TabData>} Array of tab objects
  */
 function getAllTabs() {
     return tabs;

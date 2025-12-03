@@ -9,6 +9,8 @@
  * - Custom palette support
  *
  * @module ColorPalette
+ *
+ * @typedef {import('./types.js').PaletteColor} PaletteColor
  */
 
 import logger from './core/Logger.js';
