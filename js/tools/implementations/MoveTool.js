@@ -1,14 +1,13 @@
 /**
- * MoveTool - Move Canvas Content
+ * MoveTool - Move Selected Content
  *
- * Professional move tool:
- * - Move entire canvas or selection
- * - Live preview during drag
- * - Respects selection bounds
+ * This tool allows the user to move the content within an active selection.
+ * - On drag start, it "cuts" the selected pixels into a buffer and clears the original area.
+ * - During drag, it provides a live preview of the content being moved without altering the main canvas.
+ * - On drag end, it "pastes" the buffered pixels into the new location.
  *
  * @extends BaseTool
  */
-
 class MoveTool extends BaseTool {
     static CONFIG = {
         id: 'move',
@@ -18,113 +17,161 @@ class MoveTool extends BaseTool {
         cursor: 'move',
         hasSizeOption: false,
         hasShapeOption: false,
-        description: 'Move content',
+        description: 'Move selected content',
         category: 'navigation'
     };
 
     constructor() {
         super();
-        this.originalData = null;
-        this.offsetX = 0;
-        this.offsetY = 0;
+        this.isMoving = false;
+        this.selectionData = null; // Holds the pixel data of the selection
+        this.originalSelectionBounds = null; // The initial position of the selection
+        this.currentOffset = { x: 0, y: 0 };
     }
 
+    /**
+     * The Move tool requires a preview overlay to show the content being moved.
+     */
     needsPreview() {
         return true;
     }
 
+    /**
+     * Provides the data needed for the preview overlay to render.
+     * @returns {Object|null} An object with data and position, or null if not moving.
+     */
+    getPreviewData() {
+        if (!this.isMoving || !this.selectionData) {
+            return null;
+        }
+        return {
+            pixelData: this.selectionData,
+            x: this.originalSelectionBounds.x1 + this.currentOffset.x,
+            y: this.originalSelectionBounds.y1 + this.currentOffset.y
+        };
+    }
+
     onDrawStart(x, y, pixelData, context) {
-        // Save original data
-        this.originalData = this.clonePixelData(pixelData);
-        this.offsetX = 0;
-        this.offsetY = 0;
-        return false;
+        if (!this.selectionActive || !this.selectionBounds) {
+            this.logger.info?.('MoveTool: No selection active, nothing to move.');
+            return false; // Nothing to do without a selection
+        }
+
+        this.isMoving = true;
+        this.originalSelectionBounds = { ...this.selectionBounds };
+        this.currentOffset = { x: 0, y: 0 };
+
+        const { x1, y1, x2, y2 } = this.originalSelectionBounds;
+        const width = x2 - x1 + 1;
+        const height = y2 - y1 + 1;
+
+        // "Cut" the selection data into the buffer
+        this.selectionData = [];
+        for (let j = 0; j < height; j++) {
+            this.selectionData[j] = [];
+            for (let i = 0; i < width; i++) {
+                this.selectionData[j][i] = pixelData[y1 + j][x1 + i];
+            }
+        }
+
+        // Clear the original area on the main canvas
+        for (let j = y1; j <= y2; j++) {
+            for (let i = x1; i <= x2; i++) {
+                pixelData[j][i] = 0; // Assuming 0 is the transparent/empty color index
+            }
+        }
+        
+        // Inform the canvas that an update is needed to show the "cut" area
+        return true; 
     }
 
     onDrawContinue(x, y, pixelData, context) {
-        // Calculate offset
-        this.offsetX = x - this.startX;
-        this.offsetY = y - this.startY;
-
-        // Apply move preview
-        return this.applyMove(pixelData);
-    }
-
-    onDrawEnd(x, y, pixelData, context) {
-        // Final move
-        this.offsetX = x - this.startX;
-        this.offsetY = y - this.startY;
-
-        const modified = this.applyMove(pixelData);
-        this.originalData = null;
-
-        return modified;
-    }
-
-    onDrawCancel() {
-        this.originalData = null;
-        this.offsetX = 0;
-        this.offsetY = 0;
-    }
-
-    /**
-     * Apply move operation
-     * @private
-     */
-    applyMove(pixelData) {
-        if (!this.originalData) {
+        if (!this.isMoving) {
             return false;
         }
 
-        const height = pixelData.length;
-        const width = pixelData[0].length;
+        // Calculate the offset from the start of the drag
+        this.currentOffset.x = x - this.startX;
+        this.currentOffset.y = y - this.startY;
 
-        // Clear canvas or selection area
-        if (this.selectionActive && this.selectionBounds) {
-            // Move only selection
-            const { x1, y1, x2, y2 } = this.selectionBounds;
+        // We don't modify the main pixelData here.
+        // The preview is handled by the getPreviewData() method and the renderer.
+        // We return false because the main data isn't changed, only the preview state.
+        return false;
+    }
 
-            // Clear selection area
-            for (let y = y1; y <= y2; y++) {
-                for (let x = x1; x <= x2; x++) {
-                    if (y >= 0 && y < height && x >= 0 && x < width) {
-                        pixelData[y][x] = 0;
-                    }
-                }
-            }
+    onDrawEnd(x, y, pixelData, context) {
+        if (!this.isMoving) {
+            return false;
+        }
 
-            // Move selected pixels
-            for (let y = y1; y <= y2; y++) {
-                for (let x = x1; x <= x2; x++) {
-                    const srcX = x;
-                    const srcY = y;
-                    const destX = x + this.offsetX;
-                    const destY = y + this.offsetY;
+        const destX = this.originalSelectionBounds.x1 + this.currentOffset.x;
+        const destY = this.originalSelectionBounds.y1 + this.currentOffset.y;
 
-                    if (srcY >= 0 && srcY < height && srcX >= 0 && srcX < width) {
-                        if (destY >= 0 && destY < height && destX >= 0 && destX < width) {
-                            pixelData[destY][destX] = this.originalData[srcY][srcX];
-                        }
-                    }
-                }
-            }
-        } else {
-            // Move entire canvas
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    const srcX = x - this.offsetX;
-                    const srcY = y - this.offsetY;
+        // "Paste" the selection data at the new location
+        const height = this.selectionData.length;
+        const width = this.selectionData[0].length;
+        const canvasHeight = pixelData.length;
+        const canvasWidth = pixelData[0].length;
 
-                    if (srcY >= 0 && srcY < height && srcX >= 0 && srcX < width) {
-                        pixelData[y][x] = this.originalData[srcY][srcX];
-                    } else {
-                        pixelData[y][x] = 0; // Fill with transparent
+        for (let j = 0; j < height; j++) {
+            for (let i = 0; i < width; i++) {
+                const drawX = destX + i;
+                const drawY = destY + j;
+
+                // Ensure we are drawing within canvas bounds
+                if (drawX >= 0 && drawX < canvasWidth && drawY >= 0 && drawY < canvasHeight) {
+                    // Only paste non-transparent pixels to allow for irregular shapes
+                    if (this.selectionData[j][i] !== 0) {
+                        pixelData[drawY][drawX] = this.selectionData[j][i];
                     }
                 }
             }
         }
 
-        return true;
+        // Update the selection bounds to the new location
+        const newSelectionBounds = {
+            x1: destX,
+            y1: destY,
+            x2: destX + width - 1,
+            y2: destY + height - 1
+        };
+        this.setSelection(newSelectionBounds);
+        
+        // Publish an event to notify other parts of the app (like SelectionOverlay)
+        if (window.EventBus) {
+            window.EventBus.publish('selectionChanged', { bounds: newSelectionBounds });
+        }
+        
+        this.resetState();
+        return true; // The main pixelData was modified
+    }
+
+    onDrawCancel() {
+        if (this.isMoving) {
+            // Restore the cut data to its original location
+            const { x1, y1 } = this.originalSelectionBounds;
+            const height = this.selectionData.length;
+            const width = this.selectionData[0].length;
+            
+            // This part is tricky, as the underlying area might have changed.
+            // For now, we just paste it back. A more robust implementation
+            // would use a separate layer for the move operation.
+            for (let j = 0; j < height; j++) {
+                for (let i = 0; i < width; i++) {
+                    // Note: This simple paste might overwrite other changes.
+                    this.pixelData[y1 + j][x1 + i] = this.selectionData[j][i];
+                }
+            }
+        }
+        this.resetState();
+    }
+
+    resetState() {
+        this.isMoving = false;
+        this.selectionData = null;
+        this.originalSelectionBounds = null;
+        this.currentOffset = { x: 0, y: 0 };
     }
 }
 

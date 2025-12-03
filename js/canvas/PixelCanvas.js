@@ -1,13 +1,11 @@
 /**
  * PixelCanvas - Main Canvas Controller (Refactored)
  *
- * Orchestrates all canvas sub-modules:
+ * Orchestrates all canvas sub-modules and runs the main render loop.
  * - PixelData: Data management
  * - CanvasRenderer: Rendering
  * - CanvasEvents: User interaction
  * - SelectionOverlay: Selection visualization
- *
- * Provides unified public API for backward compatibility
  *
  * @module PixelCanvas
  */
@@ -18,6 +16,10 @@ const PixelCanvas = (function() {
     let canvasElement = null;
     let onChangeCallback = null;
     let constants = null;
+    let toolRegistry = null;
+
+    let renderLoopId = null;
+    let dashOffset = 0;
 
     const logger = window.Logger || console;
     const eventBus = window.EventBus || null;
@@ -28,74 +30,41 @@ const PixelCanvas = (function() {
     const events = window.CanvasEvents;
     const selectionOverlay = window.SelectionOverlay;
 
-    /**
-     * Initialize the pixel canvas
-     * @param {string} canvasId - ID of the canvas element
-     * @param {number} width - Initial width
-     * @param {number} height - Initial height
-     * @param {Function} onChange - Change callback
-     * @returns {Promise<void>}
-     */
     async function init(canvasId, width = 16, height = 16, onChange = null) {
         try {
             logger.info?.('PixelCanvas initializing...');
-
             onChangeCallback = onChange;
             canvasElement = document.getElementById(canvasId);
+            toolRegistry = window.ToolRegistry;
 
-            if (!canvasElement) {
-                throw new Error(`Canvas element "${canvasId}" not found`);
-            }
+            if (!canvasElement) throw new Error(`Canvas element "${canvasId}" not found`);
 
-            // Load constants
-            if (window.ConfigLoader) {
-                constants = await window.ConfigLoader.loadConstants();
-            }
+            constants = window.ConfigLoader ? await window.ConfigLoader.loadConstants() : {};
 
-            // Initialize sub-modules
-            if (pixelData) {
-                pixelData.init(width, height);
-            } else {
-                throw new Error('PixelData module not available');
-            }
+            if (!pixelData) throw new Error('PixelData module not available');
+            pixelData.init(width, height);
 
-            if (renderer) {
-                renderer.init(canvasElement, constants);
-                renderer.updateCanvasSize(width, height);
-            } else {
-                throw new Error('CanvasRenderer module not available');
-            }
+            if (!renderer) throw new Error('CanvasRenderer module not available');
+            renderer.init(canvasElement, constants);
+            renderer.updateCanvasSize(width, height);
 
             if (selectionOverlay) {
-                selectionOverlay.init(canvasElement, {
-                    renderer,
-                    toolRegistry: window.ToolRegistry
-                });
+                selectionOverlay.init(canvasElement, { renderer });
             }
 
-            if (events) {
-                events.init(canvasElement, {
-                    renderer,
-                    pixelData,
-                    toolRegistry: window.ToolRegistry,
-                    colorPalette: window.ColorPalette,
-                    viewport: window.Viewport,
-                    onChange: handleChange
-                });
-            } else {
-                throw new Error('CanvasEvents module not available');
-            }
-
-            // Initial render
-            render();
+            if (!events) throw new Error('CanvasEvents module not available');
+            events.init(canvasElement, {
+                renderer,
+                pixelData,
+                toolRegistry,
+                onChange: handleChange
+            });
+            
             updateSizeDisplay();
+            startRenderLoop(); // Start the main render loop
 
             logger.info?.(`PixelCanvas initialized: ${width}×${height}`);
-
-            // Emit event
-            if (eventBus) {
-                eventBus.emit(eventBus.Events.CANVAS_RESIZED, { width, height });
-            }
+            if (eventBus) eventBus.emit(eventBus.Events.CANVAS_RESIZED, { width, height });
 
         } catch (error) {
             logger.error?.('PixelCanvas initialization failed', error);
@@ -103,163 +72,116 @@ const PixelCanvas = (function() {
         }
     }
 
-    /**
-     * Render canvas
-     */
-    function render() {
-        if (renderer && pixelData) {
+    function startRenderLoop() {
+        if (renderLoopId) return;
+
+        function loop() {
+            // Render main canvas
             renderer.render(pixelData.getData());
+
+            // Update and render selection overlay
+            if (selectionOverlay && toolRegistry) {
+                dashOffset = (dashOffset + 0.25) % 16;
+                const activeTool = toolRegistry.getCurrentTool();
+                
+                const selectionState = {
+                    bounds: null,
+                    previewBounds: null,
+                    movePreview: null,
+                };
+
+                if (activeTool) {
+                    selectionState.bounds = activeTool.selectionActive ? activeTool.selectionBounds : null;
+
+                    // Handle SelectTool preview
+                    if (activeTool.constructor.CONFIG.id === 'select' && activeTool.isDrawing) {
+                        selectionState.bounds = null; // Hide old selection while drawing new one
+                        selectionState.previewBounds = {
+                            x1: Math.min(activeTool.startX, activeTool.lastX),
+                            y1: Math.min(activeTool.startY, activeTool.lastY),
+                            x2: Math.max(activeTool.startX, activeTool.lastX),
+                            y2: Math.max(activeTool.startY, activeTool.lastY)
+                        };
+                    }
+                    
+                    // Handle MoveTool preview
+                    if (activeTool.constructor.CONFIG.id === 'move' && activeTool.isMoving) {
+                        selectionState.movePreview = activeTool.getPreviewData();
+                        selectionState.bounds = null; // Hide the original selection bounds during move
+                    }
+                }
+
+                selectionOverlay.render(selectionState, dashOffset);
+            }
+
+            renderLoopId = requestAnimationFrame(loop);
+        }
+        loop();
+        logger.info?.('PixelCanvas render loop started.');
+    }
+
+    function stopRenderLoop() {
+        if (renderLoopId) {
+            cancelAnimationFrame(renderLoopId);
+            renderLoopId = null;
+            logger.info?.('PixelCanvas render loop stopped.');
         }
     }
 
-    /**
-     * Clear canvas
-     */
     function clear() {
         if (pixelData) {
             pixelData.clear();
-            render();
             handleChange();
-
-            if (eventBus) {
-                eventBus.emit(eventBus.Events.CANVAS_CLEARED);
-            }
+            if (eventBus) eventBus.emit(eventBus.Events.CANVAS_CLEARED);
         }
     }
 
-    /**
-     * Resize canvas
-     * @param {number} newWidth - New width
-     * @param {number} newHeight - New height
-     * @returns {boolean} Success
-     */
     function resize(newWidth, newHeight) {
-        if (!pixelData || !renderer) {
-            logger.error?.('Cannot resize: modules not initialized');
-            return false;
-        }
+        if (!pixelData || !renderer) return false;
 
-        const success = pixelData.resize(newWidth, newHeight);
-
-        if (success) {
+        if (pixelData.resize(newWidth, newHeight)) {
             renderer.updateCanvasSize(newWidth, newHeight);
-
-            if (selectionOverlay) {
-                selectionOverlay.updateSize();
-            }
-
-            render();
+            if (selectionOverlay) selectionOverlay.updateSize();
+            
             updateSizeDisplay();
             handleChange();
-
-            if (eventBus) {
-                eventBus.emit(eventBus.Events.CANVAS_RESIZED, {
-                    width: newWidth,
-                    height: newHeight
-                });
-            }
+            if (eventBus) eventBus.emit(eventBus.Events.CANVAS_RESIZED, { width: newWidth, height: newHeight });
+            return true;
         }
-
-        return success;
+        return false;
     }
 
-    /**
-     * Export to Base64 string
-     * @param {boolean} compress - Apply RLE compression
-     * @returns {string} Export string
-     */
     function exportToString(compress = false) {
-        if (!pixelData) {
-            logger.error?.('Cannot export: PixelData not initialized');
-            return '';
-        }
-
-        return pixelData.exportToString(compress);
+        return pixelData ? pixelData.exportToString(compress) : '';
     }
 
-    /**
-     * Import from Base64 string
-     * @param {string} str - Import string
-     * @returns {boolean} Success
-     */
     function importFromString(str) {
-        if (!pixelData || !renderer) {
-            logger.error?.('Cannot import: modules not initialized');
-            return false;
-        }
+        if (!pixelData || !renderer) return false;
 
         const result = pixelData.importFromString(str);
-
         if (result.success) {
             const dims = pixelData.getDimensions();
             renderer.updateCanvasSize(dims.width, dims.height);
 
             if (selectionOverlay) {
                 selectionOverlay.updateSize();
-                selectionOverlay.clearSelection();
+            }
+            if (toolRegistry) {
+                 const activeTool = toolRegistry.getCurrentTool();
+                 if(activeTool) activeTool.clearSelection();
             }
 
-            render();
             updateSizeDisplay();
             handleChange();
-
-            if (eventBus) {
-                eventBus.emit(eventBus.Events.FILE_LOADED, {
-                    width: dims.width,
-                    height: dims.height
-                });
-            }
-
+            if (eventBus) eventBus.emit(eventBus.Events.FILE_LOADED, { width: dims.width, height: dims.height });
             return true;
         } else {
-            // Show error dialog
-            if (window.Dialogs) {
-                window.Dialogs.alert('Import Failed', result.error, 'error');
-            } else {
-                alert('Import failed: ' + result.error);
-            }
-
+            if (window.Dialogs) window.Dialogs.alert('Import Failed', result.error, 'error');
+            else alert('Import failed: ' + result.error);
             return false;
         }
     }
 
-    /**
-     * Get pixel data array
-     * @returns {Array<Array<number>>} Pixel data
-     */
-    function getPixelData() {
-        return pixelData ? pixelData.getData() : [];
-    }
-
-    /**
-     * Get canvas dimensions
-     * @returns {Object} {width, height}
-     */
-    function getDimensions() {
-        return pixelData ? pixelData.getDimensions() : { width: 0, height: 0 };
-    }
-
-    /**
-     * Clear selection overlay
-     */
-    function clearSelectionOverlay() {
-        if (selectionOverlay) {
-            selectionOverlay.clearSelection();
-        }
-    }
-
-    /**
-     * Get canvas statistics
-     * @returns {Object} Statistics
-     */
-    function getStats() {
-        return pixelData ? pixelData.getStats() : {};
-    }
-
-    /**
-     * Update size display in UI
-     * @private
-     */
     function updateSizeDisplay() {
         if (!pixelData) return;
 
@@ -273,67 +195,40 @@ const PixelCanvas = (function() {
         }
     }
 
-    /**
-     * Handle canvas change
-     * @private
-     */
     function handleChange() {
-        if (onChangeCallback) {
-            onChangeCallback();
-        }
-
-        // Update UI
+        if (onChangeCallback) onChangeCallback();
         updateSizeDisplay();
     }
 
-    /**
-     * Set change callback
-     * @param {Function} callback - Callback function
-     */
-    function setChangeCallback(callback) {
-        onChangeCallback = callback;
-        if (events) {
-            events.setChangeCallback(callback);
-        }
-    }
-
-    /**
-     * Destroy canvas and cleanup
-     */
     function destroy() {
-        if (events) {
-            events.destroy();
-        }
-
-        if (selectionOverlay) {
-            selectionOverlay.destroy();
-        }
-
-        if (renderer) {
-            renderer.clear();
-        }
-
+        stopRenderLoop();
+        if (events) events.destroy();
+        if (selectionOverlay) selectionOverlay.destroy();
         logger.info?.('PixelCanvas destroyed');
     }
+    
+    function getPixelData() { return pixelData ? pixelData.getData() : []; }
+    function getDimensions() { return pixelData ? pixelData.getDimensions() : { width: 0, height: 0 }; }
+    function getStats() { return pixelData ? pixelData.getStats() : {}; }
+    function setChangeCallback(callback) {
+        onChangeCallback = callback;
+        if (events) events.setChangeCallback(callback);
+    }
 
-    // Public API (maintains backward compatibility)
     return {
         init,
-        render,
         clear,
         resize,
         exportToString,
         importFromString,
         getPixelData,
         getDimensions,
-        clearSelectionOverlay,
         getStats,
         setChangeCallback,
         destroy
     };
 })();
 
-// Make available globally
 if (typeof window !== 'undefined') {
     window.PixelCanvas = PixelCanvas;
 }
