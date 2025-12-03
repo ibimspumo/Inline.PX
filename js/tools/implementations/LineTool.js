@@ -10,6 +10,8 @@
  * @extends BaseTool
  */
 
+import BaseTool from '../BaseTool.js';
+
 class LineTool extends BaseTool {
     static CONFIG = {
         id: 'line',
@@ -132,6 +134,4 @@ class LineTool extends BaseTool {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.LineTool = LineTool;
-}
+export default LineTool;

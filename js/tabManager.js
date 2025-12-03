@@ -9,441 +9,439 @@
  * - Tab renaming
  */
 
-const TabManager = (function() {
-    'use strict';
+import logger from './core/Logger.js';
+import Dialogs from './dialogs.js';
+import PixelCanvas from './canvas/PixelCanvas.js';
+import Autosave from './autosave.js';
+import Compression from './compression.js';
 
-    let tabs = [];
-    let currentTabId = null;
-    let tabCounter = 0;
+let tabs = [];
+let currentTabId = null;
+let tabCounter = 0;
 
-    /**
-     * Initialize tab manager
-     */
-    function init() {
-        createTabBar();
+/**
+ * Initialize tab manager
+ */
+function init() {
+    createTabBar();
 
-        // Try to restore autosaved tabs
-        const restoredTabs = restoreAutosavedTabs();
+    // Try to restore autosaved tabs
+    const restoredTabs = restoreAutosavedTabs();
 
-        if (restoredTabs.length === 0) {
-            // No saved tabs, create new one
-            createNewTab('Untitled-1', 16, 16);
+    if (restoredTabs.length === 0) {
+        // No saved tabs, create new one
+        createNewTab('Untitled-1', 16, 16);
+    }
+
+    logger.info('Tab Manager initialized');
+}
+
+/**
+ * Create tab bar UI
+ */
+function createTabBar() {
+    const workspace = document.querySelector('.workspace');
+    if (!workspace) return;
+
+    const menuBar = workspace.querySelector('.menu-bar');
+
+    const tabBar = document.createElement('div');
+    tabBar.className = 'tab-bar';
+    tabBar.id = 'tabBar';
+    tabBar.innerHTML = `
+        <div class="tab-list" id="tabList"></div>
+        <button class="tab-new-btn" id="newTabBtn" title="New Document (Ctrl+N)">+</button>
+    `;
+
+    // Insert after menu bar
+    workspace.insertBefore(tabBar, menuBar.nextSibling);
+
+    // Setup event listeners
+    document.getElementById('newTabBtn').addEventListener('click', () => {
+        createNewTab();
+    });
+}
+
+/**
+ * Create a new tab
+ * @param {string} name - Tab name
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {string} data - Optional pixel data
+ */
+function createNewTab(name = null, width = 16, height = 16, data = null) {
+    tabCounter++;
+    const tabId = `tab_${Date.now()}_${tabCounter}`;
+    const tabName = name || `Untitled-${tabCounter}`;
+
+    const tab = {
+        id: tabId,
+        name: tabName,
+        width: width,
+        height: height,
+        data: data || generateEmptyData(width, height),
+        isDirty: false,
+        created: Date.now(),
+        modified: Date.now()
+    };
+
+    tabs.push(tab);
+    renderTab(tab);
+    switchToTab(tabId);
+
+    return tab;
+}
+
+/**
+ * Generate empty pixel data
+ * @param {number} width - Width
+ * @param {number} height - Height
+ * @returns {string} Empty data string
+ */
+function generateEmptyData(width, height) {
+    const emptyPixels = '0'.repeat(width * height);
+    return `${width}x${height}:${emptyPixels}`;
+}
+
+/**
+ * Render a tab in the tab bar
+ * @param {Object} tab - Tab object
+ */
+function renderTab(tab) {
+    const tabList = document.getElementById('tabList');
+    if (!tabList) return;
+
+    const tabElement = document.createElement('div');
+    tabElement.className = 'tab';
+    tabElement.dataset.tabId = tab.id;
+    tabElement.innerHTML = `
+        <span class="tab-name">${tab.name}</span>
+        <span class="tab-dirty" style="display: none;">●</span>
+        <button class="tab-close" title="Close">×</button>
+    `;
+
+    // Tab click - switch
+    tabElement.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('tab-close')) {
+            switchToTab(tab.id);
         }
+    });
 
-        console.log('Tab Manager initialized');
+    // Close button
+    tabElement.querySelector('.tab-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeTab(tab.id);
+    });
+
+    // Double click - rename
+    tabElement.querySelector('.tab-name').addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        renameTab(tab.id);
+    });
+
+    tabList.appendChild(tabElement);
+}
+
+/**
+ * Switch to a different tab
+ * @param {string} tabId - Tab ID to switch to
+ */
+function switchToTab(tabId) {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    // Save current tab state
+    if (currentTabId) {
+        saveCurrentTabState();
     }
 
-    /**
-     * Create tab bar UI
-     */
-    function createTabBar() {
-        const workspace = document.querySelector('.workspace');
-        if (!workspace) return;
+    // Update current tab
+    currentTabId = tabId;
 
-        const menuBar = workspace.querySelector('.menu-bar');
+    // Update UI
+    document.querySelectorAll('.tab').forEach(el => {
+        el.classList.toggle('active', el.dataset.tabId === tabId);
+    });
 
-        const tabBar = document.createElement('div');
-        tabBar.className = 'tab-bar';
-        tabBar.id = 'tabBar';
-        tabBar.innerHTML = `
-            <div class="tab-list" id="tabList"></div>
-            <button class="tab-new-btn" id="newTabBtn" title="New Document (Ctrl+N)">+</button>
-        `;
-
-        // Insert after menu bar
-        workspace.insertBefore(tabBar, menuBar.nextSibling);
-
-        // Setup event listeners
-        document.getElementById('newTabBtn').addEventListener('click', () => {
-            createNewTab();
-        });
+    // Load tab data into canvas
+    if (PixelCanvas) {
+        PixelCanvas.importFromString(tab.data);
     }
 
-    /**
-     * Create a new tab
-     * @param {string} name - Tab name
-     * @param {number} width - Canvas width
-     * @param {number} height - Canvas height
-     * @param {string} data - Optional pixel data
-     */
-    function createNewTab(name = null, width = 16, height = 16, data = null) {
-        tabCounter++;
-        const tabId = `tab_${Date.now()}_${tabCounter}`;
-        const tabName = name || `Untitled-${tabCounter}`;
+    // Update document title
+    document.title = `${tab.name} - Inline.px`;
 
-        const tab = {
-            id: tabId,
-            name: tabName,
-            width: width,
-            height: height,
-            data: data || generateEmptyData(width, height),
-            isDirty: false,
-            created: Date.now(),
-            modified: Date.now()
-        };
+    logger.info('Switched to tab:', tab.name);
+}
 
-        tabs.push(tab);
-        renderTab(tab);
-        switchToTab(tabId);
+/**
+ * Save current tab state
+ */
+function saveCurrentTabState() {
+    const tab = tabs.find(t => t.id === currentTabId);
+    if (!tab || !PixelCanvas) return;
 
-        return tab;
-    }
+    tab.data = PixelCanvas.exportToString();
+    tab.modified = Date.now();
+}
 
-    /**
-     * Generate empty pixel data
-     * @param {number} width - Width
-     * @param {number} height - Height
-     * @returns {string} Empty data string
-     */
-    function generateEmptyData(width, height) {
-        const emptyPixels = '0'.repeat(width * height);
-        return `${width}x${height}:${emptyPixels}`;
-    }
+/**
+ * Close a tab
+ * @param {string} tabId - Tab ID to close
+ */
+async function closeTab(tabId) {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
 
-    /**
-     * Render a tab in the tab bar
-     * @param {Object} tab - Tab object
-     */
-    function renderTab(tab) {
-        const tabList = document.getElementById('tabList');
-        if (!tabList) return;
-
-        const tabElement = document.createElement('div');
-        tabElement.className = 'tab';
-        tabElement.dataset.tabId = tab.id;
-        tabElement.innerHTML = `
-            <span class="tab-name">${tab.name}</span>
-            <span class="tab-dirty" style="display: none;">●</span>
-            <button class="tab-close" title="Close">×</button>
-        `;
-
-        // Tab click - switch
-        tabElement.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('tab-close')) {
-                switchToTab(tab.id);
+    // Prevent closing last tab
+    if (tabs.length === 1) {
+        const confirmed = await Dialogs.confirm(
+            'Close Document',
+            'Close this document and create a new one?',
+            {
+                confirmText: 'Close & New',
+                cancelText: 'Cancel',
+                type: 'info'
             }
-        });
-
-        // Close button
-        tabElement.querySelector('.tab-close').addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeTab(tab.id);
-        });
-
-        // Double click - rename
-        tabElement.querySelector('.tab-name').addEventListener('dblclick', (e) => {
-            e.stopPropagation();
-            renameTab(tab.id);
-        });
-
-        tabList.appendChild(tabElement);
-    }
-
-    /**
-     * Switch to a different tab
-     * @param {string} tabId - Tab ID to switch to
-     */
-    function switchToTab(tabId) {
-        const tab = tabs.find(t => t.id === tabId);
-        if (!tab) return;
-
-        // Save current tab state
-        if (currentTabId) {
-            saveCurrentTabState();
-        }
-
-        // Update current tab
-        currentTabId = tabId;
-
-        // Update UI
-        document.querySelectorAll('.tab').forEach(el => {
-            el.classList.toggle('active', el.dataset.tabId === tabId);
-        });
-
-        // Load tab data into canvas
-        if (PixelCanvas) {
-            PixelCanvas.importFromString(tab.data);
-        }
-
-        // Update document title
-        document.title = `${tab.name} - Inline.px`;
-
-        console.log('Switched to tab:', tab.name);
-    }
-
-    /**
-     * Save current tab state
-     */
-    function saveCurrentTabState() {
-        const tab = tabs.find(t => t.id === currentTabId);
-        if (!tab || !PixelCanvas) return;
-
-        tab.data = PixelCanvas.exportToString();
-        tab.modified = Date.now();
-    }
-
-    /**
-     * Close a tab
-     * @param {string} tabId - Tab ID to close
-     */
-    async function closeTab(tabId) {
-        const tab = tabs.find(t => t.id === tabId);
-        if (!tab) return;
-
-        // Prevent closing last tab
-        if (tabs.length === 1) {
-            const confirmed = await Dialogs.confirm(
-                'Close Document',
-                'Close this document and create a new one?',
-                {
-                    confirmText: 'Close & New',
-                    cancelText: 'Cancel',
-                    type: 'info'
-                }
-            );
-
-            if (confirmed) {
-                // Clear and reset
-                tab.data = generateEmptyData(16, 16);
-                tab.name = 'Untitled-1';
-                tab.isDirty = false;
-                updateTabUI(tab);
-                switchToTab(tab.id);
-                if (PixelCanvas) {
-                    PixelCanvas.importFromString(tab.data);
-                }
-            }
-            return;
-        }
-
-        // Warn if unsaved
-        if (tab.isDirty) {
-            const confirmed = await Dialogs.confirm(
-                'Unsaved Changes',
-                `"${tab.name}" has unsaved changes. Close anyway?`,
-                {
-                    confirmText: 'Close',
-                    cancelText: 'Cancel',
-                    type: 'warning',
-                    dangerous: true
-                }
-            );
-
-            if (!confirmed) {
-                return;
-            }
-        }
-
-        // Remove tab
-        tabs = tabs.filter(t => t.id !== tabId);
-
-        // Remove from UI
-        const tabElement = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
-        if (tabElement) {
-            tabElement.remove();
-        }
-
-        // Switch to another tab if this was current
-        if (currentTabId === tabId) {
-            const nextTab = tabs[tabs.length - 1];
-            if (nextTab) {
-                switchToTab(nextTab.id);
-            }
-        }
-
-        // Clear autosave
-        if (Autosave) {
-            Autosave.clearAutosave(tabId);
-        }
-
-        console.log('Closed tab:', tab.name);
-    }
-
-    /**
-     * Rename a tab
-     * @param {string} tabId - Tab ID to rename
-     */
-    async function renameTab(tabId) {
-        const tab = tabs.find(t => t.id === tabId);
-        if (!tab) return;
-
-        const newName = await Dialogs.prompt(
-            'Rename Document',
-            'Enter a new name for this document:',
-            tab.name,
-            { placeholder: 'Document name' }
         );
 
-        if (newName && newName.trim()) {
-            tab.name = newName.trim();
+        if (confirmed) {
+            // Clear and reset
+            tab.data = generateEmptyData(16, 16);
+            tab.name = 'Untitled-1';
+            tab.isDirty = false;
             updateTabUI(tab);
-
-            if (currentTabId === tabId) {
-                document.title = `${tab.name} - Inline.px`;
+            switchToTab(tab.id);
+            if (PixelCanvas) {
+                PixelCanvas.importFromString(tab.data);
             }
         }
+        return;
     }
 
-    /**
-     * Update tab UI element
-     * @param {Object} tab - Tab object
-     */
-    function updateTabUI(tab) {
-        const tabElement = document.querySelector(`.tab[data-tab-id="${tab.id}"]`);
-        if (!tabElement) return;
+    // Warn if unsaved
+    if (tab.isDirty) {
+        const confirmed = await Dialogs.confirm(
+            'Unsaved Changes',
+            `"${tab.name}" has unsaved changes. Close anyway?`,
+            {
+                confirmText: 'Close',
+                cancelText: 'Cancel',
+                type: 'warning',
+                dangerous: true
+            }
+        );
 
-        const nameSpan = tabElement.querySelector('.tab-name');
-        const dirtySpan = tabElement.querySelector('.tab-dirty');
-
-        if (nameSpan) {
-            nameSpan.textContent = tab.name;
-        }
-
-        if (dirtySpan) {
-            dirtySpan.style.display = tab.isDirty ? 'inline' : 'none';
+        if (!confirmed) {
+            return;
         }
     }
 
-    /**
-     * Mark current tab as dirty (modified)
-     */
-    function markCurrentTabDirty() {
-        const tab = tabs.find(t => t.id === currentTabId);
-        if (!tab) return;
+    // Remove tab
+    tabs = tabs.filter(t => t.id !== tabId);
 
-        tab.isDirty = true;
-        tab.modified = Date.now();
+    // Remove from UI
+    const tabElement = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+    if (tabElement) {
+        tabElement.remove();
+    }
+
+    // Switch to another tab if this was current
+    if (currentTabId === tabId) {
+        const nextTab = tabs[tabs.length - 1];
+        if (nextTab) {
+            switchToTab(nextTab.id);
+        }
+    }
+
+    // Clear autosave
+    if (Autosave) {
+        Autosave.clearAutosave(tabId);
+    }
+
+    logger.info('Closed tab:', tab.name);
+}
+
+/**
+ * Rename a tab
+ * @param {string} tabId - Tab ID to rename
+ */
+async function renameTab(tabId) {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    const newName = await Dialogs.prompt(
+        'Rename Document',
+        'Enter a new name for this document:',
+        tab.name,
+        { placeholder: 'Document name' }
+    );
+
+    if (newName && newName.trim()) {
+        tab.name = newName.trim();
         updateTabUI(tab);
 
-        // Trigger autosave
-        if (Autosave) {
-            Autosave.markDirty();
-        }
-    }
-
-    /**
-     * Mark current tab as clean (saved)
-     */
-    function markCurrentTabClean() {
-        const tab = tabs.find(t => t.id === currentTabId);
-        if (!tab) return;
-
-        tab.isDirty = false;
-        updateTabUI(tab);
-    }
-
-    /**
-     * Get current tab
-     * @returns {Object|null} Current tab object
-     */
-    function getCurrentTab() {
-        return tabs.find(t => t.id === currentTabId) || null;
-    }
-
-    /**
-     * Get all tabs
-     * @returns {Array} Array of tab objects
-     */
-    function getAllTabs() {
-        return tabs;
-    }
-
-    /**
-     * Update current tab name
-     * @param {string} name - New name
-     */
-    function setCurrentTabName(name) {
-        const tab = getCurrentTab();
-        if (tab) {
-            tab.name = name;
-            updateTabUI(tab);
+        if (currentTabId === tabId) {
             document.title = `${tab.name} - Inline.px`;
         }
     }
+}
 
-    /**
-     * Restore autosaved tabs from localStorage
-     * @returns {Array} Array of restored tabs
-     */
-    function restoreAutosavedTabs() {
-        const restoredTabs = [];
+/**
+ * Update tab UI element
+ * @param {Object} tab - Tab object
+ */
+function updateTabUI(tab) {
+    const tabElement = document.querySelector(`.tab[data-tab-id="${tab.id}"]`);
+    if (!tabElement) return;
 
-        try {
-            // Look for autosave keys in localStorage
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
+    const nameSpan = tabElement.querySelector('.tab-name');
+    const dirtySpan = tabElement.querySelector('.tab-dirty');
 
-                if (key && key.startsWith('autosave_tab_') && !key.endsWith('_timestamp')) {
-                    const tabId = key.replace('autosave_', '');
-                    const autosaveData = Autosave ? Autosave.loadAutosave(tabId) : null;
+    if (nameSpan) {
+        nameSpan.textContent = tab.name;
+    }
 
-                    if (autosaveData && autosaveData.data) {
-                        // Parse the data to get dimensions
-                        const parts = autosaveData.data.split(':');
-                        let dimensions, dataString;
+    if (dirtySpan) {
+        dirtySpan.style.display = tab.isDirty ? 'inline' : 'none';
+    }
+}
 
-                        if (parts[1] === 'RLE') {
-                            // Compressed format: WxH:RLE:DATA
-                            dimensions = parts[0].split('x');
-                            // Decompress to get actual data
-                            const decompressed = Compression.decompress(autosaveData.data);
-                            dataString = decompressed;
-                        } else {
-                            // Standard format: WxH:DATA
-                            dimensions = parts[0].split('x');
-                            dataString = autosaveData.data;
-                        }
+/**
+ * Mark current tab as dirty (modified)
+ */
+function markCurrentTabDirty() {
+    const tab = tabs.find(t => t.id === currentTabId);
+    if (!tab) return;
 
-                        const width = parseInt(dimensions[0]);
-                        const height = parseInt(dimensions[1]);
+    tab.isDirty = true;
+    tab.modified = Date.now();
+    updateTabUI(tab);
 
-                        // Create tab with restored data
-                        tabCounter++;
-                        const tab = {
-                            id: tabId,
-                            name: `Restored-${tabCounter}`,
-                            width: width,
-                            height: height,
-                            data: dataString,
-                            isDirty: false,
-                            created: autosaveData.timestamp,
-                            modified: autosaveData.timestamp
-                        };
+    // Trigger autosave
+    if (Autosave) {
+        Autosave.markDirty();
+    }
+}
 
-                        tabs.push(tab);
-                        renderTab(tab);
-                        restoredTabs.push(tab);
+/**
+ * Mark current tab as clean (saved)
+ */
+function markCurrentTabClean() {
+    const tab = tabs.find(t => t.id === currentTabId);
+    if (!tab) return;
+
+    tab.isDirty = false;
+    updateTabUI(tab);
+}
+
+/**
+ * Get current tab
+ * @returns {Object|null} Current tab object
+ */
+function getCurrentTab() {
+    return tabs.find(t => t.id === currentTabId) || null;
+}
+
+/**
+ * Get all tabs
+ * @returns {Array} Array of tab objects
+ */
+function getAllTabs() {
+    return tabs;
+}
+
+/**
+ * Update current tab name
+ * @param {string} name - New name
+ */
+function setCurrentTabName(name) {
+    const tab = getCurrentTab();
+    if (tab) {
+        tab.name = name;
+        updateTabUI(tab);
+        document.title = `${tab.name} - Inline.px`;
+    }
+}
+
+/**
+ * Restore autosaved tabs from localStorage
+ * @returns {Array} Array of restored tabs
+ */
+function restoreAutosavedTabs() {
+    const restoredTabs = [];
+
+    try {
+        // Look for autosave keys in localStorage
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+
+            if (key && key.startsWith('autosave_tab_') && !key.endsWith('_timestamp')) {
+                const tabId = key.replace('autosave_', '');
+                const autosaveData = Autosave ? Autosave.loadAutosave(tabId) : null;
+
+                if (autosaveData && autosaveData.data) {
+                    // Parse the data to get dimensions
+                    const parts = autosaveData.data.split(':');
+                    let dimensions, dataString;
+
+                    if (parts[1] === 'RLE') {
+                        // Compressed format: WxH:RLE:DATA
+                        dimensions = parts[0].split('x');
+                        // Decompress to get actual data
+                        const decompressed = Compression.decompress(autosaveData.data);
+                        dataString = decompressed;
+                    } else {
+                        // Standard format: WxH:DATA
+                        dimensions = parts[0].split('x');
+                        dataString = autosaveData.data;
                     }
+
+                    const width = parseInt(dimensions[0]);
+                    const height = parseInt(dimensions[1]);
+
+                    // Create tab with restored data
+                    tabCounter++;
+                    const tab = {
+                        id: tabId,
+                        name: `Restored-${tabCounter}`,
+                        width: width,
+                        height: height,
+                        data: dataString,
+                        isDirty: false,
+                        created: autosaveData.timestamp,
+                        modified: autosaveData.timestamp
+                    };
+
+                    tabs.push(tab);
+                    renderTab(tab);
+                    restoredTabs.push(tab);
                 }
             }
 
             // Switch to first restored tab
             if (restoredTabs.length > 0) {
                 switchToTab(restoredTabs[0].id);
-                console.log(`Restored ${restoredTabs.length} autosaved tab(s)`);
+                logger.info(`Restored ${restoredTabs.length} autosaved tab(s)`);
             }
-        } catch (error) {
-            console.error('Failed to restore autosaved tabs:', error);
+        }} catch (error) {
+            logger.error('Failed to restore autosaved tabs:', error);
         }
 
-        return restoredTabs;
-    }
-
-    // Public API
-    return {
-        init,
-        createNewTab,
-        switchToTab,
-        closeTab,
-        renameTab,
-        markCurrentTabDirty,
-        markCurrentTabClean,
-        getCurrentTab,
-        getAllTabs,
-        setCurrentTabName
-    };
-})();
-
-if (typeof window !== 'undefined') {
-    window.TabManager = TabManager;
+    return restoredTabs;
 }
+
+const TabManager = {
+    init,
+    createNewTab,
+    switchToTab,
+    closeTab,
+    renameTab,
+    markCurrentTabDirty,
+    markCurrentTabClean,
+    getCurrentTab,
+    getAllTabs,
+    setCurrentTabName
+};
+
+export default TabManager;

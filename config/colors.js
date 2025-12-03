@@ -73,6 +73,4 @@ const ColorConfig = {
     ]
 };
 
-if (typeof window !== 'undefined') {
-    window.ColorConfig = ColorConfig;
-}
+export default ColorConfig;

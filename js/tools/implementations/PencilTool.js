@@ -10,6 +10,8 @@
  * @extends BaseTool
  */
 
+import BaseTool from '../BaseTool.js';
+
 class PencilTool extends BaseTool {
     static CONFIG = {
         id: 'pencil',
@@ -57,7 +59,4 @@ class PencilTool extends BaseTool {
     }
 }
 
-// Register globally
-if (typeof window !== 'undefined') {
-    window.PencilTool = PencilTool;
-}
+export default PencilTool;

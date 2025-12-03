@@ -5,11 +5,12 @@
  * Provides consistent UX across the application
  */
 
-const Dialogs = (function() {
-    'use strict';
+import Compression from './compression.js';
+import ClipboardUtils from './utils/ClipboardUtils.js';
+import PNGExport from './pngExport.js';
 
-    let dialogContainer = null;
-    let currentDialog = null;
+let dialogContainer = null;
+let currentDialog = null;
 
     /**
      * Initialize dialog system
@@ -464,16 +465,12 @@ const Dialogs = (function() {
         return div.innerHTML;
     }
 
-    // Public API
-    return {
-        init,
-        alert,
-        confirm,
-        prompt,
-        exportDialog
-    };
-})();
+const Dialogs = {
+    init,
+    alert,
+    confirm,
+    prompt,
+    exportDialog
+};
 
-if (typeof window !== 'undefined') {
-    window.Dialogs = Dialogs;
-}
+export default Dialogs;

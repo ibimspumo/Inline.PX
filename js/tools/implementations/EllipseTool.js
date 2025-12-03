@@ -9,6 +9,8 @@
  * @extends BaseTool
  */
 
+import BaseTool from '../BaseTool.js';
+
 class EllipseTool extends BaseTool {
     static CONFIG = {
         id: 'ellipse',
@@ -102,6 +104,4 @@ class EllipseTool extends BaseTool {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.EllipseTool = EllipseTool;
-}
+export default EllipseTool;

@@ -10,6 +10,8 @@
  * @extends BaseTool
  */
 
+import BaseTool from '../BaseTool.js';
+
 class EraserTool extends BaseTool {
     static CONFIG = {
         id: 'eraser',
@@ -87,7 +89,4 @@ class EraserTool extends BaseTool {
     }
 }
 
-// Register globally
-if (typeof window !== 'undefined') {
-    window.EraserTool = EraserTool;
-}
+export default EraserTool;

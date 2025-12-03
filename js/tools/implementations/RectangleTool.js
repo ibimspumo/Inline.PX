@@ -9,6 +9,8 @@
  * @extends BaseTool
  */
 
+import BaseTool from '../BaseTool.js';
+
 class RectangleTool extends BaseTool {
     static CONFIG = {
         id: 'rectangle',
@@ -110,6 +112,4 @@ class RectangleTool extends BaseTool {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.RectangleTool = RectangleTool;
-}
+export default RectangleTool;

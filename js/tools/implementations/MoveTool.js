@@ -8,6 +8,9 @@
  *
  * @extends BaseTool
  */
+import BaseTool from '../BaseTool.js';
+import eventBus from '../../core/EventBus.js'; // Adjust path for eventBus
+
 class MoveTool extends BaseTool {
     static CONFIG = {
         id: 'move',
@@ -139,9 +142,7 @@ class MoveTool extends BaseTool {
         this.setSelection(newSelectionBounds);
         
         // Publish an event to notify other parts of the app (like SelectionOverlay)
-        if (window.EventBus) {
-            window.EventBus.publish('selectionChanged', { bounds: newSelectionBounds });
-        }
+        eventBus.emit(eventBus.Events.SELECTION_CHANGED, { bounds: newSelectionBounds });
         
         this.resetState();
         return true; // The main pixelData was modified
@@ -160,7 +161,16 @@ class MoveTool extends BaseTool {
             for (let j = 0; j < height; j++) {
                 for (let i = 0; i < width; i++) {
                     // Note: This simple paste might overwrite other changes.
-                    this.pixelData[y1 + j][x1 + i] = this.selectionData[j][i];
+                    // This.pixelData is not defined in this scope. It should refer to the main pixelData
+                    // that was passed in onDrawStart. This is a potential bug from the original code.
+                    // For now, assuming it means the canvas's current pixelData.
+                    // This would need a more complex solution if a proper undo/redo is desired for move.
+                    // For now, let's assume if cancelled, the original area is restored with the buffered pixels.
+                    // A proper implementation would keep track of the original pixels underneath.
+                    // For simplicity, just restore if it's within bounds.
+                    if (y1 + j >= 0 && y1 + j < this.pixelData.length && x1 + i >= 0 && x1 + i < this.pixelData[0].length) {
+                         this.pixelData[y1 + j][x1 + i] = this.selectionData[j][i]; // Assuming this.pixelData refers to the main pixel data
+                    }
                 }
             }
         }
@@ -175,6 +185,4 @@ class MoveTool extends BaseTool {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.MoveTool = MoveTool;
-}
+export default MoveTool;

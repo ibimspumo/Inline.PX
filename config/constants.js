@@ -43,6 +43,4 @@ const Constants = {
     }
 };
 
-if (typeof window !== 'undefined') {
-    window.Constants = Constants;
-}
+export default Constants;

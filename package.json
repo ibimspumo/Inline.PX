@@ -1,0 +1,27 @@
+{
+  "name": "inline.px",
+  "version": "1.0.0",
+  "description": "**Ultra-compact pixel art format with zero-dependency client-side rendering.**",
+  "main": "inline-px.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ibimspumo/pixelcreator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ibimspumo/pixelcreator/issues"
+  },
+  "homepage": "https://github.com/ibimspumo/pixelcreator#readme",
+  "devDependencies": {
+    "vite": "^7.2.6",
+    "vite-plugin-singlefile": "^2.3.0"
+  }
+}

@@ -9,6 +9,8 @@
  * @extends BaseTool
  */
 
+import BaseTool from '../BaseTool.js';
+
 class MagicWandTool extends BaseTool {
     static CONFIG = {
         id: 'magicWand',
@@ -121,6 +123,4 @@ class MagicWandTool extends BaseTool {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.MagicWandTool = MagicWandTool;
-}
+export default MagicWandTool;

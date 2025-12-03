@@ -16,6 +16,8 @@
  * @class BaseTool
  */
 
+import logger from '../core/Logger.js';
+
 class BaseTool {
     /**
      * Tool configuration - MUST be overridden by subclasses
@@ -102,7 +104,7 @@ class BaseTool {
         this.actionHistory = [];
 
         // Logger reference
-        this.logger = window.Logger || console;
+        this.logger = logger;
 
         this.logger.debug?.(`${this.constructor.CONFIG.name} tool created`);
     }
@@ -614,7 +616,4 @@ class BaseTool {
     }
 }
 
-// Make available globally
-if (typeof window !== 'undefined') {
-    window.BaseTool = BaseTool;
-}
+export default BaseTool;

@@ -10,6 +10,8 @@
  * @extends BaseTool
  */
 
+import BaseTool from '../BaseTool.js';
+
 class BrushTool extends BaseTool {
     static CONFIG = {
         id: 'brush',
@@ -88,7 +90,4 @@ class BrushTool extends BaseTool {
     }
 }
 
-// Register globally
-if (typeof window !== 'undefined') {
-    window.BrushTool = BrushTool;
-}
+export default BrushTool;

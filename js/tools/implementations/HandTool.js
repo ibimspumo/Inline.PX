@@ -10,6 +10,10 @@
  * @extends BaseTool
  */
 
+import BaseTool from '../BaseTool.js';
+// We will need to refactor Viewport module first
+// import Viewport from '../../viewport.js'; 
+
 class HandTool extends BaseTool {
     static CONFIG = {
         id: 'hand',
@@ -25,13 +29,15 @@ class HandTool extends BaseTool {
 
     constructor() {
         super();
-        this.viewportModule = null;
+        this.viewportModule = null; // Will be assigned on init once Viewport is imported
     }
 
     init() {
         super.init();
         // Get reference to Viewport module if available
-        this.viewportModule = window.Viewport || null;
+        // This will be handled by the app's overall module system
+        // For now, assume it's set up in the main app
+        // this.viewportModule = Viewport; // This will be assigned when Viewport is refactored
     }
 
     activate() {
@@ -49,6 +55,9 @@ class HandTool extends BaseTool {
         this.updateCursor('grabbing');
 
         // Pan viewport if available
+        // Need to ensure Viewport is available and initialized.
+        // For now, rely on context providing it, or pass it directly.
+        // Or assume it's already set on this.viewportModule in init.
         if (this.viewportModule && this.viewportModule.startPan) {
             this.viewportModule.startPan(x, y);
         }
@@ -100,6 +109,4 @@ class HandTool extends BaseTool {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.HandTool = HandTool;
-}
+export default HandTool;

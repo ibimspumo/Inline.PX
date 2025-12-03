@@ -10,6 +10,8 @@
  * @extends BaseTool
  */
 
+import BaseTool from '../BaseTool.js';
+
 class SelectTool extends BaseTool {
     static CONFIG = {
         id: 'select',
@@ -79,13 +81,19 @@ class SelectTool extends BaseTool {
      */
     getSelectionData() {
         if (this.tempSelection) {
+            // Adjust bounds to always be positive width/height for external consumers
+            const x1 = Math.min(this.tempSelection.x1, this.tempSelection.x2);
+            const y1 = Math.min(this.tempSelection.y1, this.tempSelection.y2);
+            const x2 = Math.max(this.tempSelection.x1, this.tempSelection.x2);
+            const y2 = Math.max(this.tempSelection.y1, this.tempSelection.y2);
+
             return {
                 active: true,
                 isDrawing: true,
-                x1: this.tempSelection.x1,
-                y1: this.tempSelection.y1,
-                x2: this.tempSelection.x2,
-                y2: this.tempSelection.y2
+                x1: x1,
+                y1: y1,
+                x2: x2,
+                y2: y2
             };
         } else if (this.selectionActive && this.selectionBounds) {
             return {
@@ -126,6 +134,4 @@ class SelectTool extends BaseTool {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.SelectTool = SelectTool;
-}
+export default SelectTool;

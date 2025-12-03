@@ -10,6 +10,8 @@
  * @extends BaseTool
  */
 
+import BaseTool from '../BaseTool.js';
+
 class FillTool extends BaseTool {
     static CONFIG = {
         id: 'fill',
@@ -116,6 +118,4 @@ class FillTool extends BaseTool {
     }
 }
 
-if (typeof window !== 'undefined') {
-    window.FillTool = FillTool;
-}
+export default FillTool;
