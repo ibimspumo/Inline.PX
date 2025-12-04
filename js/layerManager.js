@@ -288,9 +288,12 @@ function compositeAllLayers() {
     const sortedLayers = getLayers(); // Bottom to top
 
     sortedLayers.forEach(layer => {
-        if (!layer.visible) return;
+        if (!layer.visible || !layer.data) return;
 
         for (let y = 0; y < canvasHeight; y++) {
+            // Safety check: ensure row exists
+            if (!layer.data[y]) continue;
+
             for (let x = 0; x < canvasWidth; x++) {
                 const pixel = layer.data[y][x];
                 // Simple alpha blending (0 = transparent, skip)
