@@ -1,9 +1,15 @@
 import { defineConfig } from 'vite';
-import { viteSingleFile } from 'vite-plugin-singlefile';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+import path from 'path';
 
 export default defineConfig({
-  plugins: [viteSingleFile()],
+  plugins: [svelte()],
   build: {
     outDir: 'docs',
+  },
+  resolve: {
+    alias: {
+      $lib: path.resolve(__dirname, './src/lib')
+    }
   }
 });
