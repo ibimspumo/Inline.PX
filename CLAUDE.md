@@ -1,163 +1,479 @@
-# CLAUDE.md - AI Development Guide for Inline.px
+# Inline.px - Pixel Art Editor
 
-This document provides context and guidance for AI assistants (Claude Code, GitHub Copilot, etc.) working on the Inline.px project.
+## Overview
 
----
+**Inline.px** ist ein browserbasierter Pixel Art Editor mit zero-dependency client-side rendering. Das Projekt nutzt eine modulare ES6-Architektur mit Vite als Build-Tool und kompiliert zu einer einzigen, selbstständigen HTML-Datei.
 
-## 🎯 Project Overview
+- **Typ**: Standard single-project (browser-based app)
+- **Stack**: Vanilla JavaScript (ES6+), Vite, CSS3, LocalStorage API
+- **Architecture**: Event-driven, modular ES6 modules, JSDoc type annotations
+- **Output**: Single-file build (128KB uncompressed, ~34KB gzipped)
+- **Deployment**: Static hosting (GitHub Pages, Netlify, offline use)
 
-**Inline.px** is a browser-based pixel art editor built with vanilla JavaScript and ES6 modules. The application compiles to a single HTML file (~128KB, gzipped: 34KB) using Vite and runs entirely client-side with zero backend dependencies.
-
-**Key Characteristics:**
-- **Modular Architecture**: 43+ ES6 modules with clear separation of concerns
-- **Type Safety**: JSDoc TypeDefs for IntelliSense without TypeScript compilation
-- **Event-Driven**: EventBus for decoupled inter-module communication
-- **Config Validation**: Runtime validation for all configuration files
-- **Single-File Build**: Vite + vite-plugin-singlefile for distribution
+Dieses CLAUDE.md ist die autoritative Quelle für Entwicklungsrichtlinien.
+Unterverzeichnisse können spezialisierte Dokumentation enthalten.
 
 ---
 
-## 🏗️ Architecture Overview
+## Universal Development Rules
+
+### Code Quality (MUST)
+
+- **MUST** use ES6+ module syntax (import/export)
+- **MUST** add JSDoc comments for all public functions and classes
+- **MUST** use the Logger module instead of console.log
+- **MUST** emit events through EventBus for cross-module communication
+- **MUST NOT** commit node_modules, .DS_Store, or temporary files
+- **MUST NOT** use `any` type without explicit justification in JSDoc
+- **MUST** validate user input before processing
+- **MUST** handle errors gracefully with try-catch blocks
+
+### Best Practices (SHOULD)
+
+- **SHOULD** keep files under 500 lines (split into smaller modules if larger)
+- **SHOULD** use descriptive variable names (no single letters except loop counters)
+- **SHOULD** prefer functional patterns over imperative when appropriate
+- **SHOULD** use const by default, let only when reassignment needed
+- **SHOULD** validate coordinates before canvas operations
+- **SHOULD** use throttle/debounce for performance-critical operations
+- **SHOULD** test manually in browser after significant changes
+
+### Anti-Patterns (MUST NOT)
+
+- **MUST NOT** mix concerns (keep rendering, data, and business logic separate)
+- **MUST NOT** create circular dependencies between modules
+- **MUST NOT** mutate function parameters directly (use clones)
+- **MUST NOT** use innerHTML with user-provided content (XSS risk)
+- **MUST NOT** bypass security measures or validation
+- **MUST NOT** hardcode configuration values (use config/ files)
+- **MUST NOT** use global variables (use modules and EventBus)
+
+---
+
+## Git Workflow und Commit-Policy
+
+### WICHTIG: Commit-Strategie
+
+**NACH JEDER ÄNDERUNG MUSS EIN COMMIT GEMACHT WERDEN.**
+
+- Nachdem du Code geändert, Features hinzugefügt oder Bugs behoben hast, erstelle **sofort einen Commit**
+- Aktualisiere diese **CLAUDE.md Datei**, wenn sich Architektur, Patterns oder wichtige Workflows ändern
+- Committe die CLAUDE.md zusammen mit den Code-Änderungen
+
+**Workflow:**
+```bash
+# 1. Änderungen machen
+# 2. CLAUDE.md aktualisieren (falls nötig)
+# 3. Commit erstellen
+git add .
+git commit -m "feat: Add [feature description]
+
+- Details der Änderung
+- Weitere Details
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+### Branch-Strategie
+
+- Branch from `main` for features: `feature/description`
+- Branch from `main` for fixes: `fix/description`
+- Use descriptive branch names: `feature/context-menu-system`, `fix/canvas-zoom-issue`
+
+### Conventional Commits
+
+Verwende Conventional Commit Format:
+
+**Format:**
+```
+<type>: <subject>
+
+<body>
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+**Types:**
+- `feat:` - Neues Feature
+- `fix:` - Bug Fix
+- `refactor:` - Code-Refactoring ohne Funktionsänderung
+- `docs:` - Nur Dokumentationsänderungen
+- `style:` - Code-Formatierung (keine funktionalen Änderungen)
+- `perf:` - Performance-Verbesserungen
+- `test:` - Test-Hinzufügungen oder -Korrekturen
+- `chore:` - Build-Prozess oder Tool-Änderungen
+
+**Beispiele:**
+```bash
+# Feature hinzufügen
+git commit -m "feat: Add dynamic context menu system
+
+- Implement ContextMenu module with configurable menu items
+- Add context menus for canvas, palette, tabs, and files
+- Support icons, separators, and dynamic action handlers
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# Bug fixen
+git commit -m "fix: Fix canvas zoom and scaling issues
+
+- Simplify pixelSize calculation to work with Viewport zoom
+- Remove redundant zoom multiplier
+- Preserve zoom level on canvas resize
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# Refactoring
+git commit -m "refactor: Extract tool event handling into mixin
+
+- Create ToolEventMixin for reusable event handling
+- Reduce code duplication across tool implementations
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+### Wann CLAUDE.md aktualisieren
+
+Aktualisiere diese Datei, wenn:
+- ✅ Neue Module hinzugefügt werden
+- ✅ Architektur-Patterns sich ändern
+- ✅ Neue Workflows oder Best Practices etabliert werden
+- ✅ Wichtige Konfigurationsänderungen gemacht werden
+- ✅ Neue Tool-Typen oder Core-Systeme hinzugefügt werden
+
+Aktualisierung NICHT nötig für:
+- ❌ Kleine Bug-Fixes
+- ❌ Styling-Änderungen
+- ❌ Einzelne Funktionsergänzungen ohne Architektur-Impact
+
+---
+
+## Core Commands
+
+### Development
+```bash
+# Start development server (Vite)
+npm run dev
+# Öffnet automatisch http://localhost:5173
+
+# Build for production (single HTML file)
+npm run build
+# Output: docs/index.html
+
+# Install dependencies
+npm install
+```
+
+### Project Structure Exploration
+```bash
+# List all JavaScript modules
+find js -type f -name "*.js" -not -path "*/node_modules/*"
+
+# Find tool implementations
+find js/tools/implementations -name "*.js"
+
+# Find core modules
+find js/core -name "*.js"
+
+# List CSS files
+ls css/
+```
+
+### Quality Gates (run before commit)
+```bash
+# No automated tests yet - manual testing required
+# 1. Run build
+npm run build
+
+# 2. Open built file in browser
+open docs/index.html
+
+# 3. Manual testing checklist:
+# - Test all tools (Brush, Pencil, Fill, Select, etc.)
+# - Test undo/redo (Ctrl+Z, Ctrl+Y)
+# - Test file save/load from LocalStorage
+# - Test export (copy string, download .txt, export PNG)
+# - Test canvas resize
+# - Test zoom and pan
+# - Test multi-tab functionality
+# - Test autosave indicator
+```
+
+---
+
+## Project Structure
+
+### Applications & Entry Point
+- **`index.html`** → Development HTML template
+  - Entry point for Vite dev server
+  - Contains full UI structure
+  - Loads `js/main.js` as module
+
+- **`js/main.js`** → Application entry point ([main.js:1](js/main.js:1))
+  - Initializes all core systems
+  - Registers tools
+  - Sets up event listeners and keyboard shortcuts
+  - Orchestrates app lifecycle
+
+### Core Systems (`js/core/`)
+- **`EventBus.js`** → Centralized pub/sub event system ([EventBus.js:1](js/core/EventBus.js:1))
+  - Pattern: `eventBus.on('event:name', callback)`
+  - Used for: Cross-module communication
+  - Events defined in: `EventBus.Events`
+
+- **`Logger.js`** → Unified logging with levels ([Logger.js:1](js/core/Logger.js:1))
+  - Levels: DEBUG, INFO, WARN, ERROR
+  - Usage: `logger.info('message', data)`
+  - Maintains history (last 100 entries)
+
+- **`ConfigLoader.js`** → Configuration management
+  - Loads and validates config files
+  - Ensures config integrity at runtime
+
+### Canvas System (`js/canvas/`)
+- **`PixelCanvas.js`** → Main canvas orchestrator ([PixelCanvas.js:1](js/canvas/PixelCanvas.js:1))
+  - Coordinates: PixelData, CanvasRenderer, CanvasEvents, SelectionOverlay
+  - Runs main render loop with requestAnimationFrame
+  - Exports/imports pixel data strings
+
+- **`CanvasRenderer.js`** → Rendering engine
+  - Draws pixels to canvas
+  - Handles grid visualization
+  - Manages zoom and pan
+
+- **`PixelData.js`** → Data management
+  - 2D array of color indices (0-63)
+  - Format: `WxH:DATA` (e.g., `16x16:000111222...`)
+  - Compression support via RLE
+
+- **`CanvasEvents.js`** → User input handling
+  - Mouse and touch events
+  - Coordinate translation (screen → grid)
+  - Delegates to ToolRegistry
+
+- **`SelectionOverlay.js`** → Selection visualization
+  - Renders marching ants selection border
+  - Separate overlay canvas for performance
+
+### Tool System (`js/tools/`)
+
+**Architecture:**
+- **`BaseTool.js`** → Abstract base class ([BaseTool.js:1](js/tools/BaseTool.js:1))
+  - All tools extend this
+  - Lifecycle: init() → activate() → deactivate() → destroy()
+  - Drawing phases: onDrawStart(), onDrawContinue(), onDrawEnd()
+  - Mixins: Selection, Events
+
+- **`ToolRegistry.js`** → Tool management ([ToolRegistry.js:1](js/tools/ToolRegistry.js:1))
+  - Registers and manages tool instances
+  - Handles tool switching
+  - Delegates drawing operations to current tool
+  - Manages shared tool options (brushSize, shapeMode, colorCode)
+
+**Tool Implementations** (`js/tools/implementations/`):
+- **BrushTool** - Variable size brush (circular shape)
+- **PencilTool** - Single pixel drawing
+- **EraserTool** - Erase to transparent
+- **LineTool** - Draw straight lines
+- **RectangleTool** - Rectangles (fill/stroke)
+- **EllipseTool** - Ellipses (fill/stroke)
+- **FillTool** - Flood fill (bucket)
+- **SelectTool** - Rectangular selection
+- **MagicWandTool** - Color-based selection
+- **MoveTool** - Move selected pixels
+- **HandTool** - Pan viewport
+
+### UI & Managers
+- **`tabManager.js`** → Multi-tab interface ([tabManager.js:1](js/tabManager.js:1))
+  - Photoshop-style tabs for multiple documents
+  - Tab creation, switching, closing, renaming
+  - Dirty state tracking
+  - Autosave integration per tab
+
+- **`fileManager.js`** → File operations ([fileManager.js:1](js/fileManager.js:1))
+  - Save/load from LocalStorage
+  - Export as .txt file
+  - Export as PNG
+  - File deletion with confirmation
+
+- **`colorPalette.js`** → 64-color palette manager
+  - Base64 encoding (0-9A-Za-z+/)
+  - Character → Color index mapping
+  - UI rendering
+
+- **`dialogs.js`** → Modal dialog system
+  - Custom dialogs (alert, confirm, prompt)
+  - Export dialog with compression options
+  - Replaces browser native dialogs
+
+- **`contextMenu.js`** → Context menu system ([contextMenu.js:1](js/contextMenu.js:1))
+  - Dynamic context menus for canvas, palette, tabs, files
+  - Configurable menu items with icons and actions
+  - Closes on click outside
+
+- **`viewport.js`** → Zoom and pan
+  - Zoom: 10%-1000%
+  - Pan: Space key or Hand tool
+  - Mouse wheel zoom
+
+### Support Modules
+- **`history.js`** → Undo/redo system ([history.js:1](js/history.js:1))
+  - 50-state stack
+  - Debounced state capture (500ms)
+  - Supports canvas data strings
+
+- **`autosave.js`** → Automatic saving ([autosave.js:1](js/autosave.js:1))
+  - Saves every 30 seconds if dirty
+  - Visual indicator with timestamp
+  - Per-tab autosave to LocalStorage
+  - 2-second debounce after last change
+
+- **`compression.js`** → RLE compression ([compression.js:1](js/compression.js:1))
+  - Run-Length Encoding for pixel data
+  - Format: `WxH:RLE:02a05b` (count+char pairs)
+  - Smart compression (only if smaller)
+
+- **`pngExport.js`** → PNG export
+  - Renders pixel data to PNG
+  - Configurable scale (1×-20×)
+  - Download as file
+
+### Utilities (`js/utils/`)
+- **`StorageUtils.js`** → LocalStorage wrapper
+  - JSON storage helpers
+  - Quota detection
+  - Storage availability checks
+
+- **`ValidationUtils.js`** → Input validation
+  - Canvas dimension validation (2-128)
+  - Coordinate validation
+  - File name validation
+
+- **`FormatUtils.js`** → String formatting
+  - Dimension formatting (e.g., "16×16")
+  - Data string truncation for display
+
+- **`ClipboardUtils.js`** → Clipboard operations
+  - Copy with visual feedback
+  - Error handling for clipboard API
+
+### Configuration (`config/`)
+- **`colors.js`** → 64-color palette ([colors.js:1](config/colors.js:1))
+  - Base64 character mapping
+  - RGB hex colors
+  - Color categories (basic, grayscale, reds, greens, etc.)
+  - **MUST** have exactly 64 colors
+
+- **`constants.js`** → Application constants ([constants.js:1](config/constants.js:1))
+  - Canvas constraints (minSize: 2, maxSize: 128)
+  - History settings (maxStates: 50)
+  - Autosave timing (30s interval, 1s debounce)
+  - Tool defaults (brushSize, shapeMode)
+  - RLE compression settings
+
+### Styles (`css/`)
+Modular CSS architecture:
+- `variables.css` - CSS custom properties
+- `reset.css` - Browser reset
+- `layout.css` - Main layout grid
+- `toolbox.css` - Left sidebar styles
+- `properties.css` - Right panel styles
+- `buttons.css` - Button components
+- `modals.css` - Modal dialogs
+- `dialogs.css` - Custom dialog system
+- `tabs.css` - Tab bar styles
+- `context-menu.css` - Context menu styles
+- `autosave.css` - Autosave indicator
+- `welcome.css` - Welcome screen
+- `utilities.css` - Utility classes
+- `responsive.css` - Media queries
+
+### Build Output (`docs/`)
+- **`docs/index.html`** → Production build
+  - Single-file output from Vite
+  - All JS/CSS inlined
+  - ~128KB uncompressed, ~34KB gzipped
+  - Deployable to GitHub Pages, Netlify, etc.
+
+---
+
+## Architecture & Patterns
 
 ### Module Organization
 
-```
-js/
-├── main.js                      # Application entry point
-├── types.js                     # Global JSDoc type definitions
-│
-├── core/                        # Core systems (8 modules)
-│   ├── EventBus.js              # Event-driven communication
-│   ├── Logger.js                # Logging system with levels
-│   ├── ConfigLoader.js          # ES module config loader
-│   └── ...
-│
-├── canvas/                      # Canvas rendering (5 modules)
-│   ├── PixelCanvas.js           # Main canvas controller
-│   ├── CanvasRenderer.js        # Drawing operations
-│   ├── CanvasInputHandler.js   # Mouse/touch input
-│   └── ...
-│
-├── tools/                       # Drawing tools (15+ modules)
-│   ├── BaseTool.js              # Base tool class (379 lines)
-│   ├── ToolRegistry.js          # Tool management (325 lines)
-│   ├── ToolStateManager.js      # Shared state management
-│   ├── ToolDrawingProxy.js      # Drawing delegation
-│   ├── mixins/                  # Tool composition
-│   │   ├── ToolHelpers.js       # Helper functions
-│   │   ├── ToolSelectionMixin.js # Selection support
-│   │   └── ToolEventMixin.js    # Event handling
-│   ├── PenTool.js               # Pen implementation
-│   ├── LineTool.js              # Line tool
-│   └── ...
-│
-├── dialogs/                     # Dialog system (3 modules)
-│   ├── DialogCore.js            # Core dialog functionality
-│   ├── DialogHelpers.js         # Utility functions
-│   └── ExportDialog.js          # Export dialog (232 lines)
-│
-├── utils/                       # Utility modules (5 modules)
-│   ├── StorageUtils.js          # localStorage wrapper
-│   ├── ConfigValidator.js       # Config validation
-│   └── ...
-│
-├── fileManager.js               # File operations (403 lines)
-├── tabManager.js                # Multi-tab interface (473 lines)
-├── autosave.js                  # Autosave system
-├── viewport.js                  # Zoom & pan
-├── colorPalette.js              # Color management
-├── compression.js               # RLE compression
-└── History.js                   # Undo/redo
-```
-
----
-
-## 🔑 Key Design Patterns
-
-### 1. Mixin Pattern (BaseTool)
-
-BaseTool uses composition over inheritance:
-
+**✅ DO**: Use ES6 import/export
 ```javascript
-import { withEvents } from './mixins/ToolEventMixin.js';
-import { withSelection } from './mixins/ToolSelectionMixin.js';
+// Import dependencies
+import logger from './core/Logger.js';
+import eventBus from './core/EventBus.js';
 
-// Compose mixins
-class BaseTool extends withEvents(withSelection(BaseToolCore)) {
-    // Tool implementation
-}
-```
-
-### 2. Delegation Pattern (ToolRegistry)
-
-ToolRegistry delegates to specialized modules:
-
-```javascript
-const ToolRegistry = {
-    // State management delegated
-    setToolOption: StateManager.setToolOption,
-    getToolOption: StateManager.getToolOption,
-
-    // Drawing operations delegated
-    startDrawing: DrawingProxy.startDrawing,
-    continueDrawing: DrawingProxy.continueDrawing
+// Export module
+const MyModule = {
+    init() { /* ... */ },
+    doSomething() { /* ... */ }
 };
+
+export default MyModule;
 ```
 
-### 3. Facade Pattern (Dialogs)
-
-Dialogs provides a clean API wrapping complex dialog logic:
-
+**✅ DO**: Keep modules focused (Single Responsibility)
 ```javascript
-// Simple API
-await Dialogs.alert('Title', 'Message', 'success');
-const confirmed = await Dialogs.confirm('Title', 'Message');
-const value = await Dialogs.prompt('Title', 'Message', 'default');
-
-// Complex logic hidden in DialogCore
+// ❌ DON'T: Mix rendering with data management
+// ✅ DO: Separate concerns
+// - PixelData.js: Data only
+// - CanvasRenderer.js: Rendering only
+// - CanvasEvents.js: Input only
 ```
 
-### 4. Event-Driven Architecture
+**❌ DON'T**: Create circular dependencies
+```javascript
+// ❌ BAD: ModuleA imports ModuleB, ModuleB imports ModuleA
+// ✅ GOOD: Use EventBus for communication
+```
 
-EventBus enables decoupled communication:
+### Event-Driven Communication
+
+**Pattern**: Use EventBus for cross-module communication
 
 ```javascript
-// Module A emits event
-eventBus.emit('canvas:change', { width: 32, height: 32 });
-
-// Module B subscribes
+// Subscribe to events
 eventBus.on('canvas:change', (data) => {
-    console.log('Canvas changed:', data);
+    logger.info('Canvas changed:', data);
 });
+
+// Emit events
+eventBus.emit('canvas:change', {
+    width: 32,
+    height: 32,
+    timestamp: Date.now()
+});
+
+// Unsubscribe
+eventBus.off('canvas:change', callback);
 ```
 
----
+**Available Events** (see `EventBus.Events`):
+- `tool:changed` - Tool switched
+- `tool:optionChanged` - Tool option changed
+- `canvas:changed` - Canvas modified
+- `canvas:resized` - Canvas resized
+- `canvas:cleared` - Canvas cleared
+- `selection:changed` - Selection changed
+- `selection:cleared` - Selection cleared
+- `color:changed` - Color selected
+- `history:stateAdded` - State added to history
+- `file:loaded` - File loaded
+- `file:saved` - File saved
+- `app:ready` - App initialized
 
-## 📦 Data Structures
+### Type Safety with JSDoc
 
-### Pixel Data Format
-
-**Standard Format:**
-```
-WxH:DATA
-```
-Example: `16x16:0000111122223333...` (256 characters)
-
-**Compressed Format (RLE):**
-```
-WxH:RLE:COMPRESSED_DATA
-```
-Example: `16x16:RLE:1601115012203230...` (count+char pairs)
-
-### Base64 Color System
-
-- **64 colors** mapped to Base64 characters: `0-9A-Za-z+/`
-- Each character represents a color index (0-63)
-- Index 0: Transparent (`#00000000`)
-- Index 1: Black (`#000000`)
-- Index 63: White (`#FFFFFF`)
-
-### Common TypeDefs
+**✅ DO**: Use JSDoc for type annotations
 
 ```javascript
 /**
@@ -166,416 +482,1021 @@ Example: `16x16:RLE:1601115012203230...` (count+char pairs)
  * @property {string} name - Display name
  * @property {number} width - Canvas width
  * @property {number} height - Canvas height
- * @property {string} data - Pixel data string
+ * @property {string} data - Pixel data string (WxH:DATA)
  * @property {boolean} isDirty - Unsaved changes flag
  * @property {number} created - Creation timestamp
  * @property {number} modified - Last modified timestamp
  */
 
 /**
- * @typedef {Object} ToolConfig
- * @property {string} id - Unique tool identifier
- * @property {string} name - Display name
- * @property {string} icon - SVG path data
- * @property {string} cursor - CSS cursor name
- * @property {string} shortcut - Keyboard shortcut key
- * @property {string} description - Tool description
- * @property {boolean} supportsSelection - Selection support flag
- */
-
-/**
- * @typedef {Object} DrawingContext
- * @property {Array<Array<number>>} pixelData - 2D pixel array
- * @property {number} width - Canvas width
- * @property {number} height - Canvas height
- * @property {number} color - Current color index
- */
-```
-
-All TypeDefs are in `js/types.js`.
-
----
-
-## 🛠️ Common Development Tasks
-
-### Adding a New Tool
-
-See detailed instructions in README.md, section "Creating New Tools".
-
-**Quick steps:**
-1. Create `js/tools/MyTool.js` extending `BaseTool`
-2. Define `static CONFIG` with tool metadata
-3. Implement `onStart()`, `onMove()`, `onEnd()`
-4. Register in `js/main.js`: `ToolRegistry.registerTools([..., MyTool])`
-5. Add button to `index.html`
-
-### Adding a New Module
-
-```javascript
-// 1. Create module file
-// js/myModule.js
-
-import logger from './core/Logger.js';
-
-/**
- * MyModule - Description
- *
- * @typedef {Object} MyDataType
- * @property {string} id
- * @property {string} name
- */
-
-let moduleState = null;
-
-function init() {
-    logger.info?.('MyModule initialized');
-}
-
-const MyModule = {
-    init,
-    // Export public API
-};
-
-export default MyModule;
-
-// 2. Import in main.js
-import MyModule from './myModule.js';
-
-// 3. Initialize in init sequence
-MyModule.init();
-```
-
-### Modifying Configuration
-
-**Colors (`config/colors.js`):**
-- Must have exactly 64 colors
-- Each color needs: `index`, `char`, `color`, `name`, `category`
-- Validated by `ConfigValidator.validateColorsConfig()`
-
-**Constants (`config/constants.js`):**
-- Canvas settings: `minSize`, `maxSize`, `defaultWidth`, `defaultHeight`, `minPixelSize`, `maxPixelSize`, `defaultPixelSize`
-- History settings: `maxStates`, `debounceTime`
-- Autosave settings: `interval`, `debounceTime`
-- Validated by `ConfigValidator.validateConstantsConfig()`
-
-**Validation happens at startup** - check browser console for errors.
-
-### Adding JSDoc Types
-
-```javascript
-// 1. Add typedef to js/types.js
-/**
- * @typedef {Object} MyNewType
- * @property {string} id
- * @property {number} value
- */
-
-// 2. Import in your module
-/**
- * @typedef {import('./types.js').MyNewType} MyNewType
- */
-
-// 3. Use in function signatures
-/**
- * Process data
- * @param {MyNewType} data - Data to process
- * @returns {boolean} Success flag
- */
-function processData(data) {
-    // Full IntelliSense support
-}
-```
-
----
-
-## 🔍 Code Quality Standards
-
-### File Size Guidelines
-
-- **Optimal**: 150-300 lines per file
-- **Maximum**: 400 lines per file
-- **Critical**: >500 lines (must be refactored)
-
-**Current largest files:**
-- `BaseTool.js`: 379 lines ✅
-- `fileManager.js`: 403 lines ✅
-- `tabManager.js`: 473 lines ✅
-
-### Coding Conventions
-
-1. **ES6+ Features**: Use arrow functions, destructuring, template literals
-2. **JSDoc Comments**: All public functions must have JSDoc
-3. **Logger Usage**: Use `logger.debug?.()`, `logger.info?.()`, etc. (never `console.log`)
-4. **Optional Chaining**: Always use `?.` for logger methods
-5. **Error Handling**: Use try-catch blocks, handle localStorage quota
-6. **CSS Classes**: Prefer CSS classes over inline styles
-7. **Event Cleanup**: Remove event listeners in destroy/cleanup methods
-
-### Example: Proper Function Documentation
-
-```javascript
-/**
- * Create a new tab with specified dimensions
- * @param {string|null} name - Tab name (null for auto-generated)
- * @param {number} width - Canvas width in pixels
- * @param {number} height - Canvas height in pixels
- * @param {string|null} data - Optional pixel data string
+ * Create a new tab
+ * @param {string} name - Tab name
+ * @param {number} width - Canvas width
+ * @param {number} height - Canvas height
+ * @param {string|null} data - Optional pixel data
  * @returns {TabData} Created tab object
  */
-function createNewTab(name = null, width = 16, height = 16, data = null) {
-    // Validate inputs
-    if (width < 2 || height < 2) {
-        logger.error?.('Invalid canvas dimensions');
-        return null;
-    }
+function createNewTab(name, width, height, data = null) {
+    // Implementation with full IntelliSense support
+}
+```
 
-    // Implementation
-    const tab = {
-        id: generateId(),
-        name: name || `Untitled-${++tabCounter}`,
-        width,
-        height,
-        data: data || generateEmptyData(width, height),
-        isDirty: false,
-        created: Date.now(),
-        modified: Date.now()
+**Existing TypeDefs** (see `js/types.js`):
+- `TabData`, `SavedFile`, `ToolConfig`, `ToolOptions`
+- `DrawingContext`, `SelectionBounds`, `PixelData`
+- `HistoryState`, `CompressionStats`, `StorageStats`
+
+### Configuration Validation
+
+All configuration files are validated at runtime:
+
+```javascript
+// config/constants.js - Validated by ConfigLoader
+const Constants = {
+    canvas: {
+        minSize: 2,      // Must be positive integer
+        maxSize: 128,    // Must be >= minSize
+        defaultWidth: 8  // Must be between min and max
+    }
+};
+
+// config/colors.js - MUST have exactly 64 colors
+const ColorConfig = {
+    palette: [
+        { index: 0, char: "0", color: "transparent", name: "Transparent" },
+        // ... must have 64 entries total
+    ]
+};
+```
+
+**Validation happens at app init:**
+- Canvas constraints validated
+- Color palette validated (64 colors, unique chars/indices)
+- Missing or invalid config → error alert and app stops
+
+### State Management
+
+**Canvas State:**
+```javascript
+// State stored in PixelData module
+// 2D array: data[y][x] = colorIndex (0-63)
+
+// Export to string
+const dataString = PixelCanvas.exportToString();
+// Format: "16x16:000111222..."
+
+// Import from string
+PixelCanvas.importFromString("16x16:000111222...");
+```
+
+**Tool State:**
+```javascript
+// Shared options managed by ToolStateManager
+ToolRegistry.setToolOption('brushSize', 3);
+ToolRegistry.setToolOption('shapeMode', 'stroke');
+ToolRegistry.setToolOption('colorCode', 5);
+
+// Tool-specific state in tool instance
+class MyTool extends BaseTool {
+    constructor() {
+        super();
+        this.myState = null; // Tool-specific state
+    }
+}
+```
+
+**Tab State:**
+```javascript
+// Managed by TabManager
+// Each tab stores its own canvas data
+const tab = {
+    id: 'tab_123',
+    name: 'My Artwork',
+    width: 16,
+    height: 16,
+    data: '16x16:000111222...',
+    isDirty: false  // Unsaved changes
+};
+```
+
+### Error Handling
+
+**✅ DO**: Use try-catch for error-prone operations
+
+```javascript
+async function saveFile() {
+    try {
+        const success = await FileManager.save(dataString, fileName);
+        if (success) {
+            logger.info('Saved successfully');
+        }
+    } catch (error) {
+        logger.error('Save failed', error);
+        await Dialogs.alert('Error', 'Failed to save file.', 'error');
+    }
+}
+```
+
+**✅ DO**: Validate inputs before processing
+
+```javascript
+function resize(width, height) {
+    const validation = validationUtils.validateCanvasDimensions(width, height);
+    if (!validation.valid) {
+        Dialogs.alert('Invalid Size', validation.error, 'warning');
+        return false;
+    }
+    // Proceed with resize
+}
+```
+
+### Performance Optimization
+
+**✅ DO**: Use throttle for frequent events
+
+```javascript
+// In BaseTool.js
+this.throttle = ToolHelpers.createThrottle(16); // ~60fps
+
+continueDrawing(x, y, pixelData, context) {
+    if (this.throttle.shouldThrottle()) {
+        return false; // Skip this frame
+    }
+    // Process drawing
+}
+```
+
+**✅ DO**: Use debounce for delayed actions
+
+```javascript
+// In main.js - History
+let historyDebounceTimer = null;
+
+function onCanvasChange() {
+    clearTimeout(historyDebounceTimer);
+    historyDebounceTimer = setTimeout(() => {
+        History.pushState(PixelCanvas.exportToString(), 'Paint');
+    }, 500); // Wait 500ms after last change
+}
+```
+
+**✅ DO**: Use requestAnimationFrame for rendering
+
+```javascript
+// In PixelCanvas.js
+function startRenderLoop() {
+    function loop() {
+        CanvasRenderer.render(PixelData.getData());
+        SelectionOverlay.render(selectionState, dashOffset);
+        renderLoopId = requestAnimationFrame(loop);
+    }
+    loop();
+}
+```
+
+---
+
+## Creating New Tools
+
+### Step 1: Create Tool Class
+
+Create a new file in `js/tools/implementations/`:
+
+```javascript
+// js/tools/implementations/MyCustomTool.js
+import BaseTool from '../BaseTool.js';
+
+/**
+ * MyCustomTool - Description of what this tool does
+ */
+class MyCustomTool extends BaseTool {
+    /**
+     * Tool configuration (required)
+     * @static
+     */
+    static CONFIG = {
+        id: 'my-custom-tool',
+        name: 'My Tool',
+        icon: 'brush', // Material Symbols icon name
+        shortcut: 'M',
+        cursor: 'crosshair',
+        hasSizeOption: false,  // Show brush size option in UI
+        hasShapeOption: false, // Show shape mode option in UI
+        description: 'My custom drawing tool',
+        category: 'drawing'
     };
 
-    logger.info?.(`Tab created: ${tab.name}`);
-    return tab;
-}
-```
-
----
-
-## 🚀 Build & Development
-
-### Development Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Start dev server (http://localhost:5173)
-npm run dev
-
-# Build for production (output: docs/index.html)
-npm run build
-
-# Preview build locally
-npm run preview
-```
-
-### Build Configuration
-
-**vite.config.js:**
-```javascript
-import { defineConfig } from 'vite';
-import { viteSingleFile } from 'vite-plugin-singlefile';
-
-export default defineConfig({
-    plugins: [viteSingleFile()],
-    build: {
-        outDir: 'docs',
-        assetsInlineLimit: 100000000
+    /**
+     * Called when tool is activated
+     */
+    activate() {
+        super.activate();
+        this.logger.info('MyCustomTool activated');
     }
-});
+
+    /**
+     * Called when tool is deactivated
+     */
+    deactivate() {
+        super.deactivate();
+        this.logger.info('MyCustomTool deactivated');
+    }
+
+    /**
+     * Handle mouse/touch down
+     * @param {number} x - Grid X coordinate
+     * @param {number} y - Grid Y coordinate
+     * @param {Array<Array<number>>} pixelData - 2D pixel array
+     * @param {Object} context - Drawing context (colorCode, brushSize, etc.)
+     * @returns {boolean} True if canvas was modified
+     */
+    onDrawStart(x, y, pixelData, context) {
+        return this.setPixel(x, y, pixelData, context.colorCode);
+    }
+
+    /**
+     * Handle mouse/touch move (drag)
+     * @returns {boolean} True if canvas was modified
+     */
+    onDrawContinue(x, y, pixelData, context) {
+        return this.setPixel(x, y, pixelData, context.colorCode);
+    }
+
+    /**
+     * Handle mouse/touch up
+     * @returns {boolean} True if canvas was modified
+     */
+    onDrawEnd(x, y, pixelData, context) {
+        return this.setPixel(x, y, pixelData, context.colorCode);
+    }
+
+    /**
+     * Set a pixel in the grid
+     * @private
+     */
+    setPixel(x, y, pixelData, colorCode) {
+        const height = pixelData.length;
+        const width = pixelData[0].length;
+
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+            // Check selection if tool respects it
+            if (this.respectsSelection() && !this.isInSelection(x, y)) {
+                return false;
+            }
+
+            if (pixelData[y][x] !== colorCode) {
+                pixelData[y][x] = colorCode;
+                return true; // Canvas modified
+            }
+        }
+        return false; // No change
+    }
+}
+
+export default MyCustomTool;
 ```
 
-**Important**: The build output (`docs/index.html`) is a single, self-contained HTML file that includes all CSS and JS inline.
+### Step 2: Register Tool
 
-### Testing Before Commit
+Add your tool to `js/main.js`:
 
-```bash
-# 1. Build the project
-npm run build
-
-# 2. Check build output
-ls -lh docs/index.html
-
-# 3. Open in browser
-open docs/index.html
-
-# 4. Test core features
-# - Draw with tools
-# - Undo/Redo
-# - Multi-tab workflow
-# - Save/Load
-# - Export
-# - Zoom/Pan
-```
-
----
-
-## 🐛 Common Issues & Solutions
-
-### Issue: Build fails with module resolution error
-
-**Cause**: Missing or incorrect import path
-
-**Solution**: Ensure all imports use `.js` extension
 ```javascript
-// ✅ Correct
-import logger from './core/Logger.js';
+// Import your tool
+import MyCustomTool from './tools/implementations/MyCustomTool.js';
 
-// ❌ Wrong
-import logger from './core/Logger';
-```
+// In initializeTools() function
+async function initializeTools() {
+    const toolClasses = [
+        BrushTool, PencilTool, EraserTool,
+        LineTool, RectangleTool, EllipseTool,
+        FillTool, SelectTool, MagicWandTool,
+        MoveTool, HandTool,
+        MyCustomTool  // Add your tool here
+    ];
 
-### Issue: Config validation error on startup
-
-**Cause**: Invalid `colors.js` or `constants.js`
-
-**Solution**: Check browser console for specific validation errors. Common issues:
-- Wrong number of colors (must be 64)
-- Missing required properties
-- Invalid property types
-
-### Issue: Tool not registering
-
-**Cause**: Missing `static CONFIG` or not imported in `main.js`
-
-**Solution**:
-1. Verify tool has `static CONFIG` property
-2. Import tool in `main.js`
-3. Add to `ToolRegistry.registerTools()` array
-
-### Issue: Memory leak with event listeners
-
-**Cause**: Event listeners not removed on cleanup
-
-**Solution**: Track and remove listeners:
-```javascript
-function showDialog() {
-    // Store handler references
-    const closeHandler = () => { /* ... */ };
-
-    // Add listeners
-    button.addEventListener('click', closeHandler);
-
-    // Remove on cleanup
-    button.removeEventListener('click', closeHandler);
+    // ... rest of initialization
 }
 ```
 
-### Issue: localStorage quota exceeded
+### Step 3: Add Tool Button to UI
 
-**Cause**: Too many saved files or large canvas sizes
+Update `index.html` to add a tool button:
 
-**Solution**: Use `StorageUtils.isQuotaExceeded()` to detect and handle:
+**Option A**: Let `setupToolbox()` auto-generate (recommended)
+- Buttons are auto-generated from tool CONFIG
+- No HTML changes needed
+
+**Option B**: Manual button (for custom styling)
+```html
+<!-- In index.html, inside .toolbox-content -->
+<button class="tool-btn" data-tool="my-custom-tool" title="My Tool (M)">
+    <span class="material-symbols-outlined tool-icon">brush</span>
+    <span class="tool-label">My Tool</span>
+    <span class="tool-shortcut">M</span>
+</button>
+```
+
+### Tool Development Tips
+
+**✅ DO**: Use BaseTool helper methods
 ```javascript
-if (!StorageUtils.setJSON(key, data)) {
+// Available helpers (see ToolHelpers.js)
+this.setPixel(x, y, pixelData, colorCode)
+this.getPixel(x, y, pixelData)
+this.clonePixelData(pixelData)
+this.validateCoordinates(x, y, pixelData)
+```
+
+**✅ DO**: Respect selections
+```javascript
+// Check if tool should respect selection
+if (this.respectsSelection() && !this.isInSelection(x, y)) {
+    continue; // Skip pixels outside selection
+}
+```
+
+**✅ DO**: Return true if canvas modified
+```javascript
+onDrawEnd(x, y, pixelData, context) {
+    // ... drawing logic
+    return true; // Tells system to update canvas
+}
+```
+
+**✅ DO**: Use preview mode for shape tools
+```javascript
+needsPreview() {
+    return true; // For tools like Line, Rectangle, Ellipse
+}
+
+onDrawContinue(x, y, pixelData, context) {
+    // Restore original data
+    this.restorePreviewData(pixelData);
+
+    // Draw preview shape
+    this.drawShape(x, y, pixelData, context);
+
+    return true;
+}
+```
+
+**✅ DO**: Log appropriately
+```javascript
+this.logger.debug?.('Detailed debug info');
+this.logger.info?.('General info');
+this.logger.warn?.('Warning message');
+this.logger.error?.('Error occurred', error);
+```
+
+**Example Tools:**
+- **Simple tool**: See `js/tools/implementations/PencilTool.js`
+- **Size-aware tool**: See `js/tools/implementations/BrushTool.js`
+- **Shape tool**: See `js/tools/implementations/RectangleTool.js`
+- **Fill algorithm**: See `js/tools/implementations/FillTool.js`
+
+---
+
+## Data Format
+
+### Pixel Data String Format
+
+**Standard Format:**
+```
+WxH:DATA
+```
+
+Example: `16x16:0000001111112222...`
+- `16x16` = dimensions (width × height)
+- `0000001111...` = pixel data (Base64 characters)
+- Each character represents one pixel color (0-63)
+
+**Compressed Format (RLE):**
+```
+WxH:RLE:COMPRESSED_DATA
+```
+
+Example: `16x16:RLE:020010311005...`
+- `RLE` = marker for compressed data
+- `02001031` = count+char pairs (02='0'×2, 00='0'×0 padding, 10='3'×10, 11='1'×11)
+- Always 2-digit count + 1-char color
+
+**Decompression:**
+```javascript
+import Compression from './compression.js';
+
+if (Compression.isCompressed(dataString)) {
+    const decompressed = Compression.decompress(dataString);
+    // Now: "16x16:0000111111111..."
+}
+```
+
+### Base64 Color Encoding
+
+- **64 colors** mapped to Base64 characters: `0-9A-Za-z+/`
+- Index 0 → '0' → Transparent
+- Index 1 → '1' → Black (#000000)
+- Index 2 → '2' → White (#FFFFFF)
+- Index 63 → '/' → Peach (#FFDAB9)
+
+**See**: `config/colors.js` for full palette
+
+---
+
+## Adding Custom Colors
+
+### Modify Color Palette
+
+Edit `config/colors.js`:
+
+```javascript
+const ColorConfig = {
+    base64Chars: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/',
+    palette: [
+        {
+            index: 0,
+            char: '0',
+            color: 'transparent',
+            name: 'Transparent',
+            category: 'special'
+        },
+        {
+            index: 1,
+            char: '1',
+            color: '#000000',
+            name: 'Black',
+            category: 'basic'
+        },
+        // ... add your custom colors
+        // IMPORTANT: Must have exactly 64 colors total
+    ]
+};
+```
+
+**Rules:**
+- ✅ **MUST** have exactly 64 colors
+- ✅ Each `index` must match its array position (0-63)
+- ✅ Each `char` must be unique
+- ✅ Each `color` must be valid CSS color (hex or keyword)
+- ✅ Index 0 should be transparent
+- ✅ `char` must match `base64Chars[index]`
+
+**Validation:**
+- ConfigLoader validates palette on app init
+- Invalid config → error alert and app stops
+
+---
+
+## Security Guidelines
+
+### Input Validation
+
+**✅ DO**: Validate all user input
+
+```javascript
+// Canvas dimensions
+const validation = validationUtils.validateCanvasDimensions(width, height);
+if (!validation.valid) {
+    return; // Don't proceed with invalid input
+}
+
+// Coordinates
+if (!ToolHelpers.validateCoordinates(x, y, pixelData)) {
+    return; // Out of bounds
+}
+
+// File names
+const fileName = userInput.trim();
+if (fileName.length > 100 || !/^[a-zA-Z0-9_\-\.]+$/.test(fileName)) {
+    await Dialogs.alert('Invalid Name', 'File name contains invalid characters.');
+    return;
+}
+```
+
+### XSS Prevention
+
+**❌ DON'T**: Use innerHTML with user content
+```javascript
+// ❌ BAD: XSS vulnerability
+element.innerHTML = userFileName;
+
+// ✅ GOOD: Use textContent
+element.textContent = userFileName;
+```
+
+**✅ DO**: Sanitize before rendering
+```javascript
+// For structured content, create elements programmatically
+const item = document.createElement('div');
+item.className = 'file-item';
+
+const name = document.createElement('div');
+name.textContent = file.name; // Safe - no HTML parsing
+item.appendChild(name);
+```
+
+### LocalStorage Safety
+
+**✅ DO**: Handle quota exceeded
+```javascript
+try {
+    StorageUtils.setJSON(STORAGE_KEY, data);
+} catch (error) {
     if (StorageUtils.isQuotaExceeded()) {
         await Dialogs.alert('Storage Full', 'Please delete some files.');
     }
 }
 ```
 
----
+**✅ DO**: Check storage availability
+```javascript
+if (!StorageUtils.isStorageAvailable()) {
+    await Dialogs.alert('Storage Unavailable', 'Browser may be in private mode.');
+    return false;
+}
+```
 
-## 📋 Refactoring History
+### Safe Operations
 
-### Completed Refactorings
-
-**Phase 1: Large File Splitting**
-- `BaseTool.js`: 619 → 379 lines (-38.8%)
-  - Created mixins: `ToolHelpers.js`, `ToolSelectionMixin.js`, `ToolEventMixin.js`
-- `dialogs.js`: 476 → 180 lines (-62.2%)
-  - Split into: `DialogCore.js`, `DialogHelpers.js`, `ExportDialog.js`
-- Created `StorageUtils.js` for localStorage abstraction
-
-**Phase 2: Tool System Refactoring**
-- `ToolRegistry.js`: 485 → 325 lines (-33%)
-  - Created: `ToolStateManager.js`, `ToolDrawingProxy.js`
-- Created `utilities.css` with 50+ utility classes
-- Migrated 36% of inline styles to CSS classes
-
-**Phase 3: Type Safety & Validation**
-- Created `types.js` with 14 global TypeDefs
-- Added JSDoc to 9 core modules
-- Created `ConfigValidator.js` for runtime validation
-- Integrated validation into `ConfigLoader.js`
-
-**Phase 4 & 5: Polish & Coverage**
-- Migrated remaining inline styles in `main.js`
-- Improved event listener cleanup in `fileManager.js`
-- Extended TypeDef coverage to 6 additional modules
-
-**Current Status:**
-- ✅ No files >500 lines
-- ✅ All core modules have TypeDefs
-- ✅ Config validation active
-- ✅ Clean event listener management
-- ✅ Minimal inline styles (only dynamic values)
+- ✅ Confirm before destructive actions (clear canvas, delete file)
+- ✅ Warn before closing unsaved tabs
+- ✅ Validate file data before importing
+- ✅ Handle malformed data gracefully
 
 ---
 
-## 🎯 Future Enhancement Ideas
+## Testing Guidelines
 
-### Priority: High
-- [ ] Add PNG import functionality
-- [ ] Implement layer system
-- [ ] Add custom keyboard shortcuts
-- [ ] Create tool presets system
+### Manual Testing Checklist
 
-### Priority: Medium
-- [ ] Add animation/frame support
-- [ ] Implement symmetry drawing modes
-- [ ] Add grid overlay options
-- [ ] Create color palette import/export
+Run this checklist before committing major changes:
 
-### Priority: Low
-- [ ] Add brush texture support
-- [ ] Implement gradient fill tool
-- [ ] Add SVG export option
-- [ ] Create plugin system for extensions
+```bash
+# 1. Build the project
+npm run build
+
+# 2. Open built file in browser
+open docs/index.html  # macOS
+# or: start docs/index.html  # Windows
+
+# 3. Test core features:
+```
+
+**Drawing Tools:**
+- [ ] Brush tool (all sizes: 1, 2, 3, 5)
+- [ ] Pencil tool
+- [ ] Eraser tool
+- [ ] Line tool
+- [ ] Rectangle tool (fill & stroke modes)
+- [ ] Ellipse tool (fill & stroke modes)
+- [ ] Fill tool (bucket)
+- [ ] Hand tool (pan)
+
+**Selection Tools:**
+- [ ] Select tool (rectangular selection)
+- [ ] Magic Wand tool (color-based selection)
+- [ ] Move tool (move selected pixels)
+- [ ] Copy/paste selection
+- [ ] Delete selection (Backspace/Delete)
+- [ ] Clear selection (Escape)
+
+**File Operations:**
+- [ ] Create new file (various sizes: 8×8, 16×16, 32×32, 64×64)
+- [ ] Save to LocalStorage
+- [ ] Load from LocalStorage
+- [ ] Delete file
+- [ ] Export as .txt
+- [ ] Export as PNG (1×, 5×, 10×, 20× scales)
+- [ ] Copy to clipboard
+- [ ] Import from string
+
+**History:**
+- [ ] Undo (Ctrl+Z) - test multiple levels
+- [ ] Redo (Ctrl+Y) - test multiple levels
+- [ ] Undo/Redo UI button states update correctly
+
+**UI Features:**
+- [ ] Multi-tab functionality (create, switch, rename, close)
+- [ ] Tab dirty state indicator (●)
+- [ ] Canvas resize (various sizes, confirm dialog if has content)
+- [ ] Color palette selection
+- [ ] Zoom in/out (mouse wheel, UI buttons)
+- [ ] Pan canvas (Space + drag, Hand tool)
+- [ ] Grid toggle (G key)
+- [ ] Autosave indicator (saves, timestamps)
+- [ ] Context menus (canvas, palette, tabs, files)
+
+**Welcome Screen:**
+- [ ] Shows on first load (no autosaved tabs)
+- [ ] "Create New" button opens new file dialog
+- [ ] "Open File" button shows file grid (if files exist)
+- [ ] Returns to welcome screen when last tab closed
+
+**Keyboard Shortcuts:**
+- [ ] Tool shortcuts (B=Brush, P=Pencil, E=Eraser, L=Line, R=Rectangle, etc.)
+- [ ] Ctrl+N - New file
+- [ ] Ctrl+S - Save
+- [ ] Ctrl+O - Load
+- [ ] Ctrl+Z - Undo
+- [ ] Ctrl+Y / Ctrl+Shift+Z - Redo
+- [ ] G - Toggle grid
+- [ ] Escape - Clear selection
+
+**Browser Compatibility:**
+- [ ] Chrome/Edge (latest)
+- [ ] Firefox (latest)
+- [ ] Safari (latest, if on macOS)
+
+**Edge Cases:**
+- [ ] Very small canvas (2×2)
+- [ ] Very large canvas (128×128)
+- [ ] Fill tool on large canvas (performance)
+- [ ] LocalStorage quota exceeded
+- [ ] Malformed import data
+
+### Debugging
+
+**Enable Debug Logging:**
+```javascript
+// In browser DevTools console:
+logger.setLevel('debug');
+
+// Check EventBus activity
+eventBus.getStats();
+// Returns: { totalEvents: 5, totalListeners: 12, events: {...} }
+
+// Check tool registry
+ToolRegistry.getStats();
+// Returns: { totalTools: 11, currentToolId: 'brush', toolIds: [...] }
+
+// Check history
+History.getStats();
+// Returns: { undoCount: 5, redoCount: 0, maxHistory: 50 }
+
+// Export logs
+logger.exportLogs();
+// Returns formatted log string
+```
+
+**Common Issues & Solutions:**
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Build fails | Outdated dependencies | `npm install` |
+| Canvas not rendering | Missing DOM element | Check `index.html` for `id="pixelCanvas"` |
+| Config validation error | Invalid colors/constants | Review `config/colors.js` and `config/constants.js` |
+| Autosave not working | localStorage disabled | Enable localStorage in browser settings |
+| Tools not responding | ToolRegistry not initialized | Check initialization order in `main.js` |
+| Import fails | Malformed data string | Validate format: `WxH:DATA` or `WxH:RLE:DATA` |
 
 ---
 
-## 📚 Useful References
+## Deployment
 
-### Documentation
-- **README.md**: User-facing documentation with quick start guide
-- **js/types.js**: All TypeDef definitions
-- **config/**: Configuration file examples
+### Option 1: GitHub Pages
 
-### External Resources
+1. Build the project:
+```bash
+npm run build
+```
+
+2. Commit the `docs/` folder:
+```bash
+git add docs/
+git commit -m "build: Update production build"
+git push origin main
+```
+
+3. Enable GitHub Pages:
+- Go to repo Settings → Pages
+- Source: Deploy from a branch
+- Branch: `main`
+- Folder: `/docs`
+- Save
+
+4. Access at: `https://username.github.io/inline.px/`
+
+### Option 2: Netlify
+
+**Drag and Drop:**
+1. Build: `npm run build`
+2. Drag `docs/` folder to Netlify
+
+**Git Integration:**
+1. Connect repo to Netlify
+2. Build command: `npm run build`
+3. Publish directory: `docs`
+
+### Option 3: Vercel
+
+1. Connect repo to Vercel
+2. Build command: `npm run build`
+3. Output directory: `docs`
+
+### Option 4: Offline Use
+
+The built file works completely offline:
+```bash
+npm run build
+open docs/index.html  # Works without web server
+```
+
+---
+
+## Quick Reference Commands
+
+### Code Navigation
+
+```bash
+# Find a tool implementation
+find js/tools/implementations -name "*Tool.js"
+
+# Find core modules
+ls js/core/
+
+# Find utility modules
+ls js/utils/
+
+# Find all event emissions
+rg -n "eventBus.emit" js/
+
+# Find all logger calls
+rg -n "logger\.(info|warn|error|debug)" js/
+
+# Find tool configurations
+rg -n "static CONFIG" js/tools/implementations/
+
+# Find JSDoc typedefs
+rg -n "@typedef" js/
+```
+
+### File Patterns
+
+```bash
+# Find specific patterns
+rg -n "export default" js/        # All module exports
+rg -n "addEventListener" js/       # Event listeners
+rg -n "async function" js/         # Async functions
+rg -n "class.*extends" js/         # Class inheritance
+```
+
+---
+
+## Common Workflows
+
+### Adding a New Feature
+
+1. **Create feature branch:**
+```bash
+git checkout -b feature/my-feature
+```
+
+2. **Implement feature:**
+   - Create new module or modify existing
+   - Add JSDoc comments
+   - Use EventBus for cross-module communication
+   - Update CLAUDE.md if architecture changes
+
+3. **Manual testing:**
+```bash
+npm run dev  # Test in dev server
+npm run build  # Test built version
+open docs/index.html
+```
+
+4. **Commit changes:**
+```bash
+git add .
+git commit -m "feat: Add my feature
+
+- Detailed description
+- Additional notes
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+5. **Update CLAUDE.md (if needed):**
+```bash
+# Edit CLAUDE.md to document new patterns/modules
+git add CLAUDE.md
+git commit -m "docs: Update CLAUDE.md for new feature
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+6. **Push and create PR:**
+```bash
+git push origin feature/my-feature
+# Create PR on GitHub
+```
+
+### Fixing a Bug
+
+1. **Create fix branch:**
+```bash
+git checkout -b fix/bug-description
+```
+
+2. **Fix bug:**
+   - Identify root cause
+   - Implement fix
+   - Test thoroughly
+
+3. **Commit:**
+```bash
+git add .
+git commit -m "fix: Fix bug description
+
+- Explain what was wrong
+- Explain how fix works
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+4. **Test and push:**
+```bash
+npm run build
+# Manual testing
+git push origin fix/bug-description
+```
+
+### Refactoring Code
+
+1. **Create refactor branch:**
+```bash
+git checkout -b refactor/component-name
+```
+
+2. **Refactor:**
+   - Extract common code into utilities
+   - Improve naming
+   - Add documentation
+   - **Do NOT change functionality**
+
+3. **Verify no regression:**
+```bash
+npm run build
+# Full manual testing checklist
+```
+
+4. **Commit:**
+```bash
+git add .
+git commit -m "refactor: Extract common logic into utility
+
+- No functional changes
+- Improved readability
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+---
+
+## Specialized Context
+
+When working in specific directories, refer to relevant code:
+
+### Frontend Canvas Work
+- **Main controller**: `js/canvas/PixelCanvas.js`
+- **Rendering**: `js/canvas/CanvasRenderer.js`
+- **Data management**: `js/canvas/PixelData.js`
+- **Events**: `js/canvas/CanvasEvents.js`
+- **Selection overlay**: `js/canvas/SelectionOverlay.js`
+
+### Tool Development
+- **Base class**: `js/tools/BaseTool.js`
+- **Registry**: `js/tools/ToolRegistry.js`
+- **Examples**: `js/tools/implementations/`
+- **Mixins**: `js/tools/mixins/`
+
+### UI Components
+- **Tabs**: `js/tabManager.js`
+- **Dialogs**: `js/dialogs.js`
+- **File operations**: `js/fileManager.js`
+- **Color palette**: `js/colorPalette.js`
+- **Context menus**: `js/contextMenu.js`
+
+### System Features
+- **Undo/Redo**: `js/history.js`
+- **Autosave**: `js/autosave.js`
+- **Compression**: `js/compression.js`
+- **PNG export**: `js/pngExport.js`
+
+---
+
+## Contributing Guidelines
+
+### Code Style
+
+- Use **ES6+ features** (arrow functions, destructuring, template literals)
+- Add **JSDoc comments** for all public functions and classes
+- Keep **files under 500 lines** (split if larger)
+- Use **logger** instead of `console.log`
+- Follow **existing naming conventions**:
+  - Functions: `camelCase` (`createNewTab`)
+  - Classes: `PascalCase` (`BaseTool`)
+  - Constants: `UPPER_SNAKE_CASE` (`MAX_HISTORY`)
+  - Private methods: prefix with `_` or mark with `@private`
+
+### Commit Message Format
+
+See **Git Workflow** section above for detailed examples.
+
+**Summary:**
+- Use Conventional Commits format
+- Include emoji: 🤖 Generated with Claude Code
+- Be descriptive in body
+- Reference issues if applicable
+
+### Pull Request Process
+
+1. **Create descriptive PR title:**
+   - `feat: Add context menu system`
+   - `fix: Fix canvas zoom calculation`
+   - `refactor: Simplify tool event handling`
+
+2. **Include in PR description:**
+   - What changed
+   - Why it changed
+   - How to test
+   - Screenshots/GIFs if UI change
+
+3. **Checklist:**
+   - [ ] Code follows style guidelines
+   - [ ] JSDoc comments added/updated
+   - [ ] Manual testing completed
+   - [ ] Build succeeds (`npm run build`)
+   - [ ] CLAUDE.md updated (if needed)
+   - [ ] No console errors in browser
+
+---
+
+## Resources
+
+### Internal Documentation
+- **README.md** - User-facing documentation
+- **DEVELOPMENT_PLAN.md** - Project roadmap
+- **generate-claude.md** - Template for this file
+- **js/types.js** - JSDoc type definitions
+
+### External Links
 - [Vite Documentation](https://vitejs.dev/)
-- [JSDoc Reference](https://jsdoc.app/)
-- [MDN Web APIs](https://developer.mozilla.org/en-US/docs/Web/API)
+- [MDN: LocalStorage API](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)
+- [MDN: Canvas API](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
+- [JSDoc Specification](https://jsdoc.app/)
+- [Conventional Commits](https://www.conventionalcommits.org/)
 
 ---
 
-## 🤖 Tips for AI Assistants
+## FAQ
 
-### When Modifying Code
+**Q: Why ES6 modules instead of TypeScript?**
+A: Zero-dependency, no build step for development, works in modern browsers natively. JSDoc provides type safety without compilation overhead.
 
-1. **Always read files before editing** - Don't guess file contents
-2. **Use JSDoc TypeDefs** - Check `types.js` for existing types
-3. **Follow naming conventions** - Analyze existing code patterns
-4. **Test builds** - Run `npm run build` after changes
-5. **Check browser console** - Config validation runs on startup
+**Q: Why single-file build?**
+A: Portable, works offline, easy to deploy/share, no server required.
 
-### When Creating New Features
+**Q: Why LocalStorage instead of backend?**
+A: Zero server costs, privacy-first (data never leaves browser), works offline.
 
-1. **Check existing patterns** - Look for similar implementations
-2. **Add TypeDefs** - Document all new data structures
-3. **Use EventBus** - Prefer events over direct coupling
-4. **Handle errors gracefully** - Use try-catch and logger
-5. **Keep files small** - Split if approaching 400 lines
+**Q: How to add more than 64 colors?**
+A: Not possible with current Base64 encoding. Would require format change (breaking change).
 
-### When Refactoring
+**Q: Why no automated tests?**
+A: Currently manual testing only. Future: Add Vitest for unit tests, Playwright for E2E.
 
-1. **Identify dependencies** - Use grep to find all usages
-2. **Maintain backward compatibility** - Don't break existing APIs
-3. **Test incrementally** - Build and test after each change
-4. **Update documentation** - Modify this file if architecture changes
-5. **Preserve types** - Maintain or improve JSDoc coverage
+**Q: How to add new keyboard shortcuts?**
+A: Add to `setupKeyboardShortcuts()` in `js/main.js`. Tool shortcuts auto-registered from `CONFIG.shortcut`.
+
+**Q: Can I use this commercially?**
+A: Yes, MIT license. See LICENSE file.
 
 ---
 
-**Last Updated**: 2025-12-03
-**Architecture Version**: 5.0 (Post-refactoring)
-**Module Count**: 43+ modules
-**Largest File**: 473 lines (tabManager.js)
-**TypeDef Coverage**: ~21% (9/43 modules)
+## Version History
+
+**Current**: v1.0.0 (Initial release)
+
+**Features:**
+- 11 drawing tools (Brush, Pencil, Eraser, Line, Rectangle, Ellipse, Fill, Select, Magic Wand, Move, Hand)
+- 64-color Base64 palette
+- Multi-tab workspace
+- Undo/Redo (50 states)
+- Autosave (30s interval)
+- LocalStorage persistence
+- Export: .txt, PNG (1×-20×), clipboard
+- RLE compression
+- Zoom & Pan
+- Grid toggle
+- Context menus
+- Welcome screen
+- Single-file build (~34KB gzipped)
+
+---
+
+**Made with ❤️ for pixel artists and developers**
+
+*This CLAUDE.md was generated following the template in generate-claude.md and is the authoritative source for development guidelines.*
