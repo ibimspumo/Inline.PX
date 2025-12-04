@@ -36,16 +36,16 @@ let canvasHeight = 16;
  * @param {number} height - Canvas height
  */
 function init(width, height) {
-    canvasWidth = width;
-    canvasHeight = height;
+    canvasWidth = width || 16;
+    canvasHeight = height || 16;
     layers = [];
     nextLayerId = 1;
 
     // Create default layer
-    const defaultLayer = createLayer('Background', width, height);
+    const defaultLayer = createLayer('Background', canvasWidth, canvasHeight);
     activeLayerId = defaultLayer.id;
 
-    logger.info?.('LayerManager initialized');
+    logger.info?.(`LayerManager initialized: ${canvasWidth}×${canvasHeight}`);
 }
 
 /**
@@ -56,13 +56,17 @@ function init(width, height) {
  * @param {Array<Array<number>>} initialData - Optional initial pixel data
  * @returns {Layer} Created layer
  */
-function createLayer(name = 'Layer', width = canvasWidth, height = canvasHeight, initialData = null) {
+function createLayer(name = 'Layer', width, height, initialData = null) {
+    // Use canvas dimensions if width/height not provided
+    const layerWidth = width || canvasWidth;
+    const layerHeight = height || canvasHeight;
+
     const layer = {
         id: `layer_${nextLayerId++}`,
         name: name,
         visible: true,
         opacity: 1.0,
-        data: initialData || createEmptyData(width, height),
+        data: initialData || createEmptyData(layerWidth, layerHeight),
         zIndex: layers.length,
         created: Date.now()
     };
