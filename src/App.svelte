@@ -6,6 +6,7 @@
 	 * Uses atomic design components for modular UI structure.
 	 */
 	import MenuButton from '$lib/components/ui/atoms/MenuButton.svelte';
+	import HistoryControls from '$lib/components/ui/molecules/HistoryControls.svelte';
 	import CanvasWrapper from '$lib/components/canvas/CanvasWrapper.svelte';
 	import Toolbox from '$lib/components/toolbox/Toolbox.svelte';
 	import ColorPalette from '$lib/components/palette/ColorPalette.svelte';
@@ -38,6 +39,13 @@
 		<div class="menu-section">
 			<MenuButton icon="FileText" label="New" shortcut="Ctrl+N" onclick={handleNew} />
 			<MenuButton icon="Save" label="Save" shortcut="Ctrl+S" onclick={handleSave} />
+		</div>
+
+		<div class="menu-section">
+			<HistoryControls />
+		</div>
+
+		<div class="menu-section">
 			<MenuButton
 				icon="Grid3x3"
 				label="Grid"
