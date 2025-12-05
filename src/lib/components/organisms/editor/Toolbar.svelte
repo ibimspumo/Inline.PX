@@ -2,8 +2,8 @@
   @component Toolbar
 
   Vertical toolbar displaying all available pixel art tools organized into groups.
-  Each tool has a keyboard shortcut hint in its tooltip. The toolbar maintains
-  local state for the active tool (not yet connected to global tool state).
+  Each tool has a keyboard shortcut hint in its tooltip. The toolbar is connected
+  to the global canvasStore for tool state management.
 
   @example
   ```svelte
@@ -14,12 +14,14 @@
   - Fixed width: 52px for compact layout
   - Tool groups separated by horizontal dividers
   - Groups: Move/Hand | Pencil/Eraser/Bucket/Eyedropper | Rectangle/Ellipse | Zoom
-  - Local $state for activeTool (future: connect to global tool state)
+  - Connected to canvasStore.activeTool for global tool state
   - Keyboard shortcuts shown in tooltips (V, H, B, E, G, I, U, Z)
   - Active tool displays with accent background
-  - TODO: Most tools not yet implemented, only visual UI
+  - Pencil and Eraser tools are fully implemented
+  - Other tools are UI-only placeholders
 -->
 <script lang="ts">
+	import { canvasStore } from '$lib/stores/canvasStore.svelte';
 	import IconButton from '$lib/components/atoms/buttons/IconButton.svelte';
 	import Divider from '$lib/components/atoms/display/Divider.svelte';
 	import {
@@ -33,9 +35,6 @@
 		Circle,
 		Move
 	} from '@lucide/svelte';
-
-	// Local tool state (not yet connected to global state)
-	let activeTool = $state('pencil');
 </script>
 
 <div class="toolbar">
@@ -43,14 +42,14 @@
 		<IconButton
 			icon={Move}
 			title="Move Tool (V)"
-			active={activeTool === 'move'}
-			onclick={() => (activeTool = 'move')}
+			active={canvasStore.activeTool === 'move'}
+			onclick={() => canvasStore.setActiveTool('move')}
 		/>
 		<IconButton
 			icon={Hand}
 			title="Hand Tool (H)"
-			active={activeTool === 'hand'}
-			onclick={() => (activeTool = 'hand')}
+			active={canvasStore.activeTool === 'hand'}
+			onclick={() => canvasStore.setActiveTool('hand')}
 		/>
 	</div>
 
@@ -60,26 +59,26 @@
 		<IconButton
 			icon={Pencil}
 			title="Pencil Tool (B)"
-			active={activeTool === 'pencil'}
-			onclick={() => (activeTool = 'pencil')}
+			active={canvasStore.activeTool === 'pencil'}
+			onclick={() => canvasStore.setActiveTool('pencil')}
 		/>
 		<IconButton
 			icon={Eraser}
 			title="Eraser Tool (E)"
-			active={activeTool === 'eraser'}
-			onclick={() => (activeTool = 'eraser')}
+			active={canvasStore.activeTool === 'eraser'}
+			onclick={() => canvasStore.setActiveTool('eraser')}
 		/>
 		<IconButton
 			icon={PaintBucket}
 			title="Paint Bucket Tool (G)"
-			active={activeTool === 'bucket'}
-			onclick={() => (activeTool = 'bucket')}
+			active={canvasStore.activeTool === 'bucket'}
+			onclick={() => canvasStore.setActiveTool('bucket')}
 		/>
 		<IconButton
 			icon={Pipette}
 			title="Eyedropper Tool (I)"
-			active={activeTool === 'eyedropper'}
-			onclick={() => (activeTool = 'eyedropper')}
+			active={canvasStore.activeTool === 'eyedropper'}
+			onclick={() => canvasStore.setActiveTool('eyedropper')}
 		/>
 	</div>
 
@@ -89,21 +88,21 @@
 		<IconButton
 			icon={Square}
 			title="Rectangle Tool (U)"
-			active={activeTool === 'rectangle'}
-			onclick={() => (activeTool = 'rectangle')}
+			active={canvasStore.activeTool === 'rectangle'}
+			onclick={() => canvasStore.setActiveTool('rectangle')}
 		/>
 		<IconButton
 			icon={Circle}
 			title="Ellipse Tool (U)"
-			active={activeTool === 'ellipse'}
-			onclick={() => (activeTool = 'ellipse')}
+			active={canvasStore.activeTool === 'ellipse'}
+			onclick={() => canvasStore.setActiveTool('ellipse')}
 		/>
 	</div>
 
 	<Divider orientation="horizontal" />
 
 	<div class="toolbar-section">
-		<IconButton icon={ZoomIn} title="Zoom Tool (Z)" active={activeTool === 'zoom'} onclick={() => (activeTool = 'zoom')} />
+		<IconButton icon={ZoomIn} title="Zoom Tool (Z)" active={canvasStore.activeTool === 'zoom'} onclick={() => canvasStore.setActiveTool('zoom')} />
 	</div>
 </div>
 
