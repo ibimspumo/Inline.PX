@@ -91,6 +91,18 @@ tools/
 │   └── ToolLoader.ts           # Auto-loads tools via glob imports
 ├── state/
 │   └── ToolStateManager.svelte.ts  # Persistent tool state with localStorage
+├── mixins/
+│   ├── types.ts                # Mixin type definitions and compose() function
+│   ├── BrushableMixin.ts       # Adds brush size support
+│   ├── ColorableMixin.ts       # Adds primary/secondary color support
+│   ├── SnapToGridMixin.ts      # Adds grid snapping support
+│   ├── PatternableMixin.ts     # Adds pattern fill support
+│   └── PressureSensitiveMixin.ts # Adds pressure sensitivity support
+├── variants/
+│   ├── types.ts                # Variant type definitions
+│   ├── VariantRegistry.ts      # Central variant registry (singleton)
+│   ├── VariantLoader.ts        # Auto-loads predefined variants
+│   └── presets.ts              # Predefined tool variants
 └── utils/
     └── iconResolver.svelte.ts  # Maps icon names to @lucide/svelte components
 ```
@@ -210,6 +222,99 @@ export default new MyTool();
 - Tool state manager (persistent settings via `state.getToolOption()`)
 - Helper methods (setPixel, getPixel, requestRedraw, setPrimaryColor, setSecondaryColor)
 - Renderer reference for advanced operations
+
+### Tool Mixins - Code Reuse
+
+**inline.px** provides a mixin system for sharing common tool behaviors:
+
+**Available Mixins** (`src/lib/tools/mixins/`):
+
+- **BrushableMixin**: Adds brush size support with `getBrushSize()` and `drawBrush()` methods
+- **ColorableMixin**: Adds primary/secondary color selection with `getColorForButton()` and `supportsSecondaryColor()`
+- **SnapToGridMixin**: Adds grid snapping with `snapToGrid()`, `isGridSnapEnabled()`, and `getGridSize()`
+- **PatternableMixin**: Adds pattern fill support with `getPattern()`, `shouldFillPixel()`, and `applyPattern()`
+- **PressureSensitiveMixin**: Adds pressure sensitivity with `getPressure()`, `applyPressure()`, and `supportsPressure()`
+
+**Using Mixins**:
+
+```typescript
+import { BaseTool } from '../base/BaseTool';
+import { compose, BrushableMixin, ColorableMixin } from '../mixins';
+
+class MyTool extends compose(BaseTool, BrushableMixin, ColorableMixin) {
+  // Automatically gets brush and color functionality
+  public readonly config = {
+    // ... config
+  };
+
+  onMouseDown(mouseContext: MouseEventContext, toolContext: ToolContext): boolean {
+    const brushSize = toolContext.state.getToolOption<number>(this.config.id, 'brushSize') ?? 1;
+    const colorIndex = this.getColorForButton(mouseContext.button);
+
+    // Use mixin methods
+    this.drawBrush(mouseContext.x, mouseContext.y, colorIndex);
+    return true;
+  }
+}
+```
+
+**Benefits**:
+- Reduce code duplication across tools
+- Consistent behavior patterns
+- Easy to extend with new mixins
+- Type-safe composition with TypeScript
+
+### Tool Variants - Preset Configurations
+
+**inline.px** supports tool variants - predefined configurations of existing tools:
+
+**Predefined Variants** (`src/lib/tools/variants/presets.ts`):
+
+- **Pencil**: Soft Brush, Hard Brush, Pixel Brush, Grid Brush
+- **Bucket**: Solid Fill, Checkerboard Fill, Horizontal Lines, Vertical Lines, Tolerant Fill
+- **Eraser**: Fine Eraser, Medium Eraser, Large Eraser
+- **Rectangle**: Filled Rectangle, Outline Rectangle, Thick Outline
+- **Circle**: Filled Circle, Outline Circle, Thick Outline
+- **Line**: Thin Line, Perfect Line, Thick Line
+
+**Creating Custom Variants**:
+
+```typescript
+import { variantRegistry } from '$lib/tools/variants';
+import type { VariantPreset } from '$lib/tools/variants';
+
+const myVariant: VariantPreset = {
+  variantId: 'my-variant',
+  name: 'My Variant',
+  description: 'Custom tool preset',
+  optionPresets: {
+    brushSize: 8,
+    opacity: 75
+  },
+  tags: ['custom']
+};
+
+// Register variant for a tool
+variantRegistry.registerVariant(pencilTool, myVariant);
+```
+
+**Loading Variants**:
+
+```typescript
+import { loadAllVariants } from '$lib/tools/variants';
+
+// Load all predefined variants (call once on app init)
+await loadAllVariants();
+
+// Get variants for a tool
+const variants = variantRegistry.getVariants('pencil');
+```
+
+**Benefits**:
+- Quick access to common tool configurations
+- No code duplication - variants reuse base tool logic
+- Easy to create new presets
+- Organized by tool in variant groups
 
 ### Color System
 

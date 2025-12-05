@@ -10,6 +10,11 @@ import type { ToolContext } from './ToolContext';
 export type OptionType = 'number' | 'boolean' | 'string' | 'color' | 'select' | 'slider';
 
 /**
+ * Pattern fill types
+ */
+export type PatternType = 'solid' | 'checkerboard' | 'horizontal' | 'vertical' | 'diagonal';
+
+/**
  * Tool option interface
  *
  * @template T - The value type for this option

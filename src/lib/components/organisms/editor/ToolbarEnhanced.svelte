@@ -122,7 +122,7 @@
 	/**
 	 * Get favorite tools
 	 */
-	let favoriteTools = $derived<BaseTool[]>(() => {
+	let favoriteTools = $derived.by(() => {
 		const favoriteIds = toolStateManager.getFavorites();
 		return allTools.filter(tool => favoriteIds.includes(tool.config.id));
 	});
@@ -130,7 +130,7 @@
 	/**
 	 * Get recent tools
 	 */
-	let recentTools = $derived<BaseTool[]>(() => {
+	let recentTools = $derived.by(() => {
 		const recentIds = toolStateManager.getRecentTools();
 		return recentIds
 			.map(id => allTools.find(tool => tool.config.id === id))
@@ -161,7 +161,7 @@
 	/**
 	 * Get tools to display based on search
 	 */
-	let displayTools = $derived<BaseTool[]>(() => {
+	let displayTools = $derived.by(() => {
 		if (searchQuery.trim()) {
 			return searchResults;
 		}

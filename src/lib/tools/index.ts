@@ -23,3 +23,14 @@ export { toolStateManager } from './state/ToolStateManager.svelte';
 // Utils
 export { resolveIcon } from './utils/iconResolver.svelte';
 export { searchTools, filterByCategory, filterByTags, getAllTags } from './utils/toolSearch';
+
+// Mixins
+export { compose } from './mixins';
+export type { Constructor, Mixin, MixinFunction } from './mixins';
+export { BrushableMixin, ColorableMixin, SnapToGridMixin, PatternableMixin, PressureSensitiveMixin } from './mixins';
+export type { Brushable, Colorable, SnapToGrid, Patternable, PressureSensitive } from './mixins';
+
+// Variants
+export type { VariantPreset, ToolVariant, VariantGroup } from './variants';
+export { variantRegistry, loadAllVariants } from './variants';
+export { pencilVariants, bucketVariants, eraserVariants, rectangleVariants, circleVariants, lineVariants } from './variants';
