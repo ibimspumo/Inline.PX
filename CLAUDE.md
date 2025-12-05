@@ -194,10 +194,146 @@ let { color = '#000000', onclick }: Props = $props();
 - Use `this.ctx` for Canvas 2D context operations
 - Maintain performance with dirty-checking pattern
 
+## Code Documentation Standards
+
+**IMPORTANT**: All Svelte components in this project are fully documented with JSDoc-style comments. When making changes or adding new code, you **MUST** follow these documentation standards:
+
+### Component Documentation
+
+Every Svelte component must include:
+
+1. **Component-level comment block** at the top with:
+   - `@component` tag with component name
+   - Description of component purpose and functionality
+   - `@example` block showing typical usage
+   - `@remarks` section listing important implementation details
+
+2. **Props interface documentation** with JSDoc comments for each property
+
+3. **Function documentation** with JSDoc comments explaining:
+   - Purpose of the function
+   - Parameters (if not obvious from TypeScript)
+   - Return values (if applicable)
+
+4. **Inline comments** for complex logic or non-obvious implementation details
+
+### Documentation Example
+
+```svelte
+<!--
+  @component IconButton
+
+  A reusable button component that displays a Lucide icon with configurable size and state.
+
+  @example
+  ```svelte
+  <IconButton
+    icon={Pencil}
+    onclick={handleClick}
+    title="Draw (B)"
+    active={activeTool === 'pencil'}
+  />
+  ```
+
+  @remarks
+  - Supports three sizes: 'sm' (24px), 'md' (32px), 'lg' (40px)
+  - Active state applies accent color background
+  - Uses CSS custom properties for theming
+-->
+<script lang="ts">
+  /**
+   * Props interface for IconButton component
+   */
+  interface Props {
+    /** Click handler function */
+    onclick?: () => void;
+    /** Tooltip text shown on hover */
+    title?: string;
+    /** Whether the button is in active/selected state */
+    active?: boolean;
+    /** Lucide icon component to display */
+    icon: Component;
+  }
+
+  let { onclick, title, active = false, icon }: Props = $props();
+
+  /**
+   * Handles button click event
+   */
+  function handleClick() {
+    onclick?.();
+  }
+</script>
+```
+
+### When to Document
+
+- **Always** add documentation when creating new components
+- **Always** update documentation when modifying component behavior
+- **Always** add JSDoc comments to new functions
+- **Always** update existing comments when changing functionality
+
+## Git Commit Guidelines
+
+**IMPORTANT**: After every meaningful code change or group of related changes, create a **micro commit** with a descriptive message.
+
+### Commit Message Format
+
+```
+<type>: <short description>
+
+<optional detailed description>
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+### Commit Types
+
+- `feat:` - New feature or functionality
+- `fix:` - Bug fix
+- `docs:` - Documentation changes
+- `refactor:` - Code refactoring without behavior change
+- `style:` - Formatting, whitespace changes
+- `test:` - Adding or updating tests
+- `chore:` - Build process, dependencies, tooling
+
+### Micro Commit Philosophy
+
+- **After every small change**: Don't batch multiple unrelated changes
+- **Descriptive messages**: Explain what changed and why
+- **Atomic commits**: Each commit should represent one logical change
+- **Working state**: Every commit should leave the codebase in a working state
+
+### Examples
+
+Good commit messages:
+```
+docs: Add JSDoc documentation to ColorPanel component
+
+Added comprehensive component documentation including @component tag,
+usage examples, and JSDoc comments for all props and functions.
+```
+
+```
+feat: Add keyboard shortcut for color swapping
+
+Implemented 'X' key to swap primary and secondary colors.
+Only triggers when not in input field.
+```
+
+```
+fix: Prevent layer deletion when only one layer exists
+
+Added check to disable delete button and prevent accidental
+deletion of the last remaining layer.
+```
+
 ## Project Structure Notes
 
 - **No test files**: Testing setup not yet implemented
-- **Documentation**: Extensive German documentation in CANVAS-SYSTEM.md, COLOR-SYSTEM.md, COMPONENT-STRUCTURE.md
+- **Documentation**: All Svelte components are fully documented with JSDoc-style comments
 - **Static assets**: Place in `static/` directory
 - **Routes**: SvelteKit file-based routing in `src/routes/`
 - **Main entry**: `src/routes/+page.svelte` shows WelcomeScreen or EditorLayout based on project state
