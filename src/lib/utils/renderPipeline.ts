@@ -72,10 +72,10 @@ export class CanvasRenderer {
 	/**
 	 * Main render method - composites all layers
 	 */
-	render(width: number, height: number, layers: Layer[]) {
+	render(width: number, height: number, layers: Layer[], zoom = 1.0, panX = 0, panY = 0) {
 		if (!this.needsRedraw) return;
 
-		// Set canvas size
+		// Set canvas size (fixed viewport size)
 		const canvasWidth = width * this.config.pixelSize;
 		const canvasHeight = height * this.config.pixelSize;
 
@@ -89,6 +89,11 @@ export class CanvasRenderer {
 
 		// Clear canvas
 		this.ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+		// Save context and apply transforms
+		this.ctx.save();
+		this.ctx.translate(panX, panY);
+		this.ctx.scale(zoom, zoom);
 
 		// Draw checkerboard background
 		this.drawCheckerboard(width, height);
@@ -108,6 +113,9 @@ export class CanvasRenderer {
 		if (this.config.showPixelBorders) {
 			this.drawPixelBorders(width, height, layers);
 		}
+
+		// Restore context
+		this.ctx.restore();
 
 		this.needsRedraw = false;
 	}
@@ -150,7 +158,6 @@ export class CanvasRenderer {
 	 */
 	private drawCheckerboard(width: number, height: number) {
 		const { pixelSize } = this.config;
-		const checkSize = pixelSize / 2;
 
 		for (let y = 0; y < height; y++) {
 			for (let x = 0; x < width; x++) {
@@ -238,15 +245,27 @@ export class CanvasRenderer {
 	}
 
 	/**
-	 * Get pixel coordinates from mouse position
+	 * Get pixel coordinates from mouse position, accounting for zoom and pan
 	 */
 	getPixelCoordinates(
 		mouseX: number,
 		mouseY: number,
-		canvasRect: DOMRect
+		canvasRect: DOMRect,
+		zoom = 1.0,
+		panX = 0,
+		panY = 0
 	): { x: number; y: number } | null {
-		const x = Math.floor((mouseX - canvasRect.left) / this.config.pixelSize);
-		const y = Math.floor((mouseY - canvasRect.top) / this.config.pixelSize);
+		// Get mouse position relative to canvas
+		const canvasX = mouseX - canvasRect.left;
+		const canvasY = mouseY - canvasRect.top;
+
+		// Apply inverse transform (undo pan and zoom)
+		const worldX = (canvasX - panX) / zoom;
+		const worldY = (canvasY - panY) / zoom;
+
+		// Convert to pixel coordinates
+		const x = Math.floor(worldX / this.config.pixelSize);
+		const y = Math.floor(worldY / this.config.pixelSize);
 
 		return { x, y };
 	}
