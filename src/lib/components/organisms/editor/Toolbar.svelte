@@ -1,9 +1,9 @@
 <!--
   @component Toolbar
 
-  Vertical toolbar displaying all available pixel art tools organized into groups.
-  Each tool has a keyboard shortcut hint in its tooltip. The toolbar is connected
-  to the global canvasStore for tool state management.
+  Dynamic toolbar that automatically displays all registered tools organized by category.
+  Tools are loaded from the tool registry and grouped by their category configuration.
+  Keyboard shortcuts are automatically shown in tooltips.
 
   @example
   ```svelte
@@ -12,98 +12,85 @@
 
   @remarks
   - Fixed width: 52px for compact layout
-  - Tool groups separated by horizontal dividers
-  - Groups: Move/Hand | Pencil/Eraser/Bucket/Eyedropper | Rectangle/Ellipse | Zoom
+  - Tool groups dynamically generated from tool registry
+  - Categories: draw, edit, select, view, shape
   - Connected to canvasStore.activeTool for global tool state
-  - Keyboard shortcuts shown in tooltips (V, H, B, E, G, I, U, Z)
+  - Keyboard shortcuts automatically shown in tooltips from tool config
   - Active tool displays with accent background
-  - Pencil, Eraser, and Bucket tools are fully implemented
-  - Other tools are UI-only placeholders
+  - Auto-updates when new tools are registered
+  - Tools sorted by category and order
 -->
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { canvasStore } from '$lib/stores/canvasStore.svelte';
 	import IconButton from '$lib/components/atoms/buttons/IconButton.svelte';
 	import Divider from '$lib/components/atoms/display/Divider.svelte';
-	import {
-		Pencil,
-		Eraser,
-		PaintBucket,
-		Pipette,
-		Hand,
-		ZoomIn,
-		Square,
-		Circle,
-		Move
-	} from '@lucide/svelte';
+	import { toolRegistry, loadAllTools } from '$lib/tools';
+	import type { ToolCategory } from '$lib/tools';
+
+	let toolsLoaded = $state(false);
+	let toolsByCategory = $state<Map<ToolCategory, any[]>>(new Map());
+
+	// Category display order
+	const categoryOrder: ToolCategory[] = ['view', 'draw', 'edit', 'shape', 'select'];
+
+	onMount(async () => {
+		// Load tools if not already loaded
+		if (toolRegistry.count === 0) {
+			await loadAllTools();
+		}
+
+		// Get tools grouped by category
+		toolsByCategory = toolRegistry.getToolsGroupedByCategory();
+		toolsLoaded = true;
+
+		console.log('Toolbar: Loaded tools by category:', toolsByCategory);
+	});
+
+	/**
+	 * Get tooltip text for a tool
+	 */
+	function getToolTooltip(tool: any): string {
+		const shortcut = tool.config.shortcut ? ` (${tool.config.shortcut})` : '';
+		return `${tool.config.name}${shortcut}`;
+	}
+
+	/**
+	 * Handle tool selection
+	 */
+	function selectTool(toolId: string) {
+		canvasStore.setActiveTool(toolId as any);
+	}
+
+	/**
+	 * Get filtered and ordered categories with tools
+	 */
+	function getOrderedCategories(): ToolCategory[] {
+		return categoryOrder.filter(category => toolsByCategory.has(category));
+	}
 </script>
 
 <div class="toolbar">
-	<div class="toolbar-section">
-		<IconButton
-			icon={Move}
-			title="Move Tool (V)"
-			active={canvasStore.activeTool === 'move'}
-			onclick={() => canvasStore.setActiveTool('move')}
-		/>
-		<IconButton
-			icon={Hand}
-			title="Hand Tool (H)"
-			active={canvasStore.activeTool === 'hand'}
-			onclick={() => canvasStore.setActiveTool('hand')}
-		/>
-	</div>
+	{#if !toolsLoaded}
+		<div class="toolbar-loading">Loading tools...</div>
+	{:else}
+		{#each getOrderedCategories() as category, index}
+			{#if index > 0}
+				<Divider orientation="horizontal" />
+			{/if}
 
-	<Divider orientation="horizontal" />
-
-	<div class="toolbar-section">
-		<IconButton
-			icon={Pencil}
-			title="Pencil Tool (B)"
-			active={canvasStore.activeTool === 'pencil'}
-			onclick={() => canvasStore.setActiveTool('pencil')}
-		/>
-		<IconButton
-			icon={Eraser}
-			title="Eraser Tool (E)"
-			active={canvasStore.activeTool === 'eraser'}
-			onclick={() => canvasStore.setActiveTool('eraser')}
-		/>
-		<IconButton
-			icon={PaintBucket}
-			title="Paint Bucket Tool (G)"
-			active={canvasStore.activeTool === 'bucket'}
-			onclick={() => canvasStore.setActiveTool('bucket')}
-		/>
-		<IconButton
-			icon={Pipette}
-			title="Eyedropper Tool (I)"
-			active={canvasStore.activeTool === 'eyedropper'}
-			onclick={() => canvasStore.setActiveTool('eyedropper')}
-		/>
-	</div>
-
-	<Divider orientation="horizontal" />
-
-	<div class="toolbar-section">
-		<IconButton
-			icon={Square}
-			title="Rectangle Tool (U)"
-			active={canvasStore.activeTool === 'rectangle'}
-			onclick={() => canvasStore.setActiveTool('rectangle')}
-		/>
-		<IconButton
-			icon={Circle}
-			title="Ellipse Tool (U)"
-			active={canvasStore.activeTool === 'ellipse'}
-			onclick={() => canvasStore.setActiveTool('ellipse')}
-		/>
-	</div>
-
-	<Divider orientation="horizontal" />
-
-	<div class="toolbar-section">
-		<IconButton icon={ZoomIn} title="Zoom Tool (Z)" active={canvasStore.activeTool === 'zoom'} onclick={() => canvasStore.setActiveTool('zoom')} />
-	</div>
+			<div class="toolbar-section">
+				{#each toolsByCategory.get(category) || [] as tool}
+					<IconButton
+						icon={tool.config.icon}
+						title={getToolTooltip(tool)}
+						active={canvasStore.activeTool === tool.config.id}
+						onclick={() => selectTool(tool.config.id)}
+					/>
+				{/each}
+			</div>
+		{/each}
+	{/if}
 </div>
 
 <style>
@@ -122,5 +109,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-xs);
+	}
+
+	.toolbar-loading {
+		padding: var(--spacing-sm);
+		font-size: var(--font-size-xs);
+		color: var(--color-text-secondary);
+		text-align: center;
 	}
 </style>
