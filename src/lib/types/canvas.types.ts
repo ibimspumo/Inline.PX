@@ -47,10 +47,9 @@ export interface CanvasHistory {
 	future: CanvasState[];
 }
 
-export type Tool =
-	| 'pencil'
-	| 'eraser'
-	| 'bucket'
-	| 'eyedropper'
-	| 'move'
-	| 'hand';
+/**
+ * Tool type - auto-generated from implementations
+ *
+ * @see generated-tool-types.ts
+ */
+export type { Tool } from './generated-tool-types';
