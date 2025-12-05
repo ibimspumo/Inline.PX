@@ -32,6 +32,7 @@
 	import ColorPanel from '$lib/components/organisms/panels/ColorPanel.svelte';
 	import LayersPanel from '$lib/components/organisms/panels/LayersPanel.svelte';
 	import HelpPanel from '$lib/components/organisms/help/HelpPanel.svelte';
+	import KeyboardShortcutsPanel from '$lib/components/organisms/help/KeyboardShortcutsPanel.svelte';
 	import { canvasStore } from '$lib/stores/canvasStore.svelte';
 
 	// Toggle between old and new toolbar for testing
@@ -39,9 +40,10 @@
 
 	// Help panel state
 	let showHelp = $state(false);
+	let showShortcuts = $state(false);
 
 	/**
-	 * Handle keyboard shortcuts for help panel
+	 * Handle keyboard shortcuts for help panel and shortcuts viewer
 	 */
 	function handleKeyDown(event: KeyboardEvent) {
 		// F1 to toggle help
@@ -50,10 +52,21 @@
 			showHelp = !showHelp;
 		}
 
-		// Escape to close help
-		if (event.key === 'Escape' && showHelp) {
+		// ? to toggle keyboard shortcuts
+		if (event.key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey) {
 			event.preventDefault();
-			showHelp = false;
+			showShortcuts = !showShortcuts;
+		}
+
+		// Escape to close help or shortcuts
+		if (event.key === 'Escape') {
+			if (showHelp) {
+				event.preventDefault();
+				showHelp = false;
+			} else if (showShortcuts) {
+				event.preventDefault();
+				showShortcuts = false;
+			}
 		}
 	}
 </script>
@@ -94,6 +107,9 @@
 	activeTool={canvasStore.activeTool}
 	onclose={() => (showHelp = false)}
 />
+
+<!-- Keyboard Shortcuts Panel (opened with ?) -->
+<KeyboardShortcutsPanel isOpen={showShortcuts} onclose={() => (showShortcuts = false)} />
 
 <style>
 	.editor-layout {
