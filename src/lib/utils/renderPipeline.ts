@@ -72,12 +72,13 @@ export class CanvasRenderer {
 	/**
 	 * Main render method - composites all layers
 	 */
-	render(width: number, height: number, layers: Layer[], zoom = 1.0, panX = 0, panY = 0) {
+	render(width: number, height: number, layers: Layer[], zoom = 1.0) {
 		if (!this.needsRedraw) return;
 
-		// Set canvas size (fixed viewport size)
-		const canvasWidth = width * this.config.pixelSize;
-		const canvasHeight = height * this.config.pixelSize;
+		// Set canvas size based on zoom level
+		const scaledPixelSize = this.config.pixelSize * zoom;
+		const canvasWidth = width * scaledPixelSize;
+		const canvasHeight = height * scaledPixelSize;
 
 		if (
 			this.canvas.width !== canvasWidth ||
@@ -90,9 +91,8 @@ export class CanvasRenderer {
 		// Clear canvas
 		this.ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-		// Save context and apply transforms
+		// Apply scale transform
 		this.ctx.save();
-		this.ctx.translate(panX, panY);
 		this.ctx.scale(zoom, zoom);
 
 		// Draw checkerboard background
@@ -245,27 +245,22 @@ export class CanvasRenderer {
 	}
 
 	/**
-	 * Get pixel coordinates from mouse position, accounting for zoom and pan
+	 * Get pixel coordinates from mouse position, accounting for zoom
 	 */
 	getPixelCoordinates(
 		mouseX: number,
 		mouseY: number,
 		canvasRect: DOMRect,
-		zoom = 1.0,
-		panX = 0,
-		panY = 0
+		zoom = 1.0
 	): { x: number; y: number } | null {
 		// Get mouse position relative to canvas
 		const canvasX = mouseX - canvasRect.left;
 		const canvasY = mouseY - canvasRect.top;
 
-		// Apply inverse transform (undo pan and zoom)
-		const worldX = (canvasX - panX) / zoom;
-		const worldY = (canvasY - panY) / zoom;
-
-		// Convert to pixel coordinates
-		const x = Math.floor(worldX / this.config.pixelSize);
-		const y = Math.floor(worldY / this.config.pixelSize);
+		// Convert to pixel coordinates with zoom
+		const scaledPixelSize = this.config.pixelSize * zoom;
+		const x = Math.floor(canvasX / scaledPixelSize);
+		const y = Math.floor(canvasY / scaledPixelSize);
 
 		return { x, y };
 	}
