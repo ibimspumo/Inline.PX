@@ -2,8 +2,8 @@
   @component PixelGrid
 
   The core interactive canvas component for pixel art drawing. Manages the HTML canvas element,
-  initializes the CanvasRenderer, and handles all mouse interactions for drawing pixels.
-  Integrates with canvasStore and colorStore for state management.
+  initializes the CanvasRenderer, and handles all mouse interactions using the plugin-based tool system.
+  Integrates with canvasStore, colorStore, and toolRegistry for state management.
 
   @example
   ```svelte
@@ -13,14 +13,11 @@
   @remarks
   - Initializes CanvasRenderer with 32px pixel size and grid display
   - Uses Svelte 5's $effect rune for reactive rendering when canvas state changes
-  - Tool-aware drawing: Pencil uses selected colors, Eraser sets pixels to transparent, Bucket fills areas
-  - Pencil: Left-click draws with primary color, right-click draws with secondary color
-  - Eraser: Both left and right click erase to transparent (color index 0)
-  - Bucket: Flood fills contiguous area with primary (left-click) or secondary (right-click) color
+  - Plugin-based tool system: All tools are self-contained and auto-registered
+  - Tools handle their own mouse events (click, drag, etc.)
   - Prevents context menu on right-click for seamless drawing
   - Automatic cleanup on component destroy
-  - Drawing state managed with $state rune for click-and-drag functionality (except bucket tool)
-  - Crosshair cursor for precise pixel placement
+  - Dynamic cursor based on active tool configuration
   - Checkerboard background for transparency visualization
   - Zoom: Mouse wheel, keyboard shortcuts (+/- to zoom, 0 to reset)
   - Canvas scales with zoom level - the canvas element itself grows/shrinks
@@ -30,12 +27,19 @@
 	import { canvasStore } from '$lib/stores/canvasStore.svelte';
 	import { colorStore } from '$lib/stores/colorStore.svelte';
 	import { CanvasRenderer } from '$lib/utils/renderPipeline';
+	import { toolRegistry, loadAllTools } from '$lib/tools';
+	import type { ToolContext, MouseEventContext } from '$lib/tools';
 
 	let canvasElement: HTMLCanvasElement;
 	let renderer: CanvasRenderer | null = null;
 	let isDrawing = $state(false);
+	let toolsLoaded = $state(false);
 
-	onMount(() => {
+	onMount(async () => {
+		// Load all tools first
+		await loadAllTools();
+		toolsLoaded = true;
+
 		// Initialize renderer with configuration
 		renderer = new CanvasRenderer(canvasElement, {
 			pixelSize: 32,
@@ -56,17 +60,76 @@
 			}
 		});
 
-		// Add global keyboard listeners for zoom
+		// Add global keyboard listeners
 		window.addEventListener('keydown', handleKeyDown);
+
+		// Notify active tool of activation
+		const activeTool = toolRegistry.getTool(canvasStore.activeTool);
+		if (activeTool && activeTool.onActivate) {
+			activeTool.onActivate(createToolContext());
+		}
 	});
 
 	onDestroy(() => {
+		// Notify active tool of deactivation
+		const activeTool = toolRegistry.getTool(canvasStore.activeTool);
+		if (activeTool && activeTool.onDeactivate) {
+			activeTool.onDeactivate(createToolContext());
+		}
+
 		// Clean up renderer resources
 		renderer?.destroy();
 
 		// Remove global keyboard listener
 		window.removeEventListener('keydown', handleKeyDown);
 	});
+
+	/**
+	 * Create tool context for current state
+	 */
+	function createToolContext(): ToolContext {
+		return {
+			canvas: {
+				width: canvasStore.width,
+				height: canvasStore.height,
+				layers: canvasStore.layers,
+				activeLayerId: canvasStore.activeLayerId,
+				zoom: canvasStore.zoom
+			},
+			colors: {
+				primaryColorIndex: colorStore.primaryColorIndex,
+				secondaryColorIndex: colorStore.secondaryColorIndex
+			},
+			renderer,
+			setPixel: (x, y, colorIndex) => canvasStore.setPixel(x, y, colorIndex),
+			getPixel: (x, y, layerId) => canvasStore.getPixel(x, y, layerId),
+			requestRedraw: () => renderCanvas()
+		};
+	}
+
+	/**
+	 * Create mouse event context from MouseEvent
+	 */
+	function createMouseContext(event: MouseEvent): MouseEventContext | null {
+		if (!renderer || !canvasElement) return null;
+
+		const rect = canvasElement.getBoundingClientRect();
+		const coords = renderer.getPixelCoordinates(
+			event.clientX,
+			event.clientY,
+			rect,
+			canvasStore.zoom
+		);
+
+		if (!coords) return null;
+
+		return {
+			x: coords.x,
+			y: coords.y,
+			button: event.button,
+			originalEvent: event
+		};
+	}
 
 	/**
 	 * Renders the current canvas state to the HTML canvas element
@@ -82,103 +145,87 @@
 	}
 
 	/**
-	 * Handles mouse down event to start drawing
+	 * Handles mouse down event
 	 */
 	function handleMouseDown(event: MouseEvent) {
-		// Fill tool only works on click, not drag
-		if (canvasStore.activeTool === 'bucket') {
-			handleFill(event);
+		if (!toolsLoaded) return;
+
+		const tool = toolRegistry.getTool(canvasStore.activeTool);
+		if (!tool) return;
+
+		const mouseContext = createMouseContext(event);
+		if (!mouseContext) return;
+
+		const toolContext = createToolContext();
+
+		// Check if tool can be used
+		if (tool.canUse) {
+			const { valid, reason } = tool.canUse(toolContext);
+			if (!valid) {
+				console.warn(`Tool ${tool.config.name} cannot be used: ${reason}`);
+				return;
+			}
+		}
+
+		// Handle click for non-drag tools
+		if (!tool.config.supportsDrag && tool.onClick) {
+			tool.onClick(mouseContext, toolContext);
 			return;
 		}
 
-		isDrawing = true;
-		drawPixel(event);
+		// Handle mouse down for drag tools
+		if (tool.config.supportsDrag) {
+			isDrawing = true;
+			if (tool.onMouseDown) {
+				tool.onMouseDown(mouseContext, toolContext);
+			}
+		}
 	}
 
 	/**
-	 * Handles mouse move event to continue drawing when mouse is down
+	 * Handles mouse move event
 	 */
 	function handleMouseMove(event: MouseEvent) {
-		if (!isDrawing) return;
-		drawPixel(event);
+		if (!isDrawing || !toolsLoaded) return;
+
+		const tool = toolRegistry.getTool(canvasStore.activeTool);
+		if (!tool || !tool.config.supportsDrag || !tool.onMouseMove) return;
+
+		const mouseContext = createMouseContext(event);
+		if (!mouseContext) return;
+
+		const toolContext = createToolContext();
+		tool.onMouseMove(mouseContext, toolContext);
 	}
 
 	/**
-	 * Handles mouse up event to stop drawing
+	 * Handles mouse up event
 	 */
-	function handleMouseUp() {
+	function handleMouseUp(event: MouseEvent) {
+		if (!toolsLoaded) return;
+
+		const tool = toolRegistry.getTool(canvasStore.activeTool);
+
+		if (tool && tool.onMouseUp) {
+			const mouseContext = createMouseContext(event);
+			if (mouseContext) {
+				const toolContext = createToolContext();
+				tool.onMouseUp(mouseContext, toolContext);
+			}
+		}
+
 		isDrawing = false;
 	}
 
 	/**
-	 * Handles mouse leave event to stop drawing when cursor leaves canvas
+	 * Handles mouse leave event
 	 */
 	function handleMouseLeave() {
 		isDrawing = false;
 	}
 
 	/**
-	 * Draws a pixel at the mouse position with the appropriate color
-	 * @param event - Mouse event containing cursor position
-	 */
-	function drawPixel(event: MouseEvent) {
-		if (!renderer || !canvasElement) return;
-
-		const rect = canvasElement.getBoundingClientRect();
-		const coords = renderer.getPixelCoordinates(
-			event.clientX,
-			event.clientY,
-			rect,
-			canvasStore.zoom
-		);
-
-		if (!coords) return;
-
-		const { x, y } = coords;
-
-		// Determine color index based on active tool
-		let colorIndex: number;
-
-		if (canvasStore.activeTool === 'eraser') {
-			// Eraser always sets to transparent (index 0)
-			colorIndex = 0;
-		} else {
-			// Pencil: Use primary color for left click, secondary for right click
-			colorIndex = event.button === 2 ? colorStore.secondaryColorIndex : colorStore.primaryColorIndex;
-		}
-
-		canvasStore.setPixel(x, y, colorIndex);
-		renderCanvas();
-	}
-
-	/**
-	 * Handles fill/bucket tool click to flood fill an area
-	 * @param event - Mouse event containing cursor position
-	 */
-	function handleFill(event: MouseEvent) {
-		if (!renderer || !canvasElement) return;
-
-		const rect = canvasElement.getBoundingClientRect();
-		const coords = renderer.getPixelCoordinates(
-			event.clientX,
-			event.clientY,
-			rect,
-			canvasStore.zoom
-		);
-
-		if (!coords) return;
-
-		const { x, y } = coords;
-
-		// Use primary color for left click, secondary for right click
-		const colorIndex = event.button === 2 ? colorStore.secondaryColorIndex : colorStore.primaryColorIndex;
-
-		canvasStore.fillArea(x, y, colorIndex);
-		renderCanvas();
-	}
-
-	/**
-	 * Prevents default context menu on right-click for seamless drawing
+	 * Prevents default context menu on right-click
 	 */
 	function handleContextMenu(event: MouseEvent) {
 		event.preventDefault();
@@ -198,7 +245,7 @@
 	}
 
 	/**
-	 * Handles keyboard events for zoom shortcuts
+	 * Handles keyboard events for zoom shortcuts and tool shortcuts
 	 */
 	function handleKeyDown(event: KeyboardEvent) {
 		// Ignore if typing in an input field
@@ -206,6 +253,17 @@
 			return;
 		}
 
+		// Check for tool shortcuts first
+		if (toolsLoaded && event.key.length === 1) {
+			const tool = toolRegistry.getToolByShortcut(event.key);
+			if (tool) {
+				event.preventDefault();
+				canvasStore.setActiveTool(tool.config.id as any);
+				return;
+			}
+		}
+
+		// Handle zoom shortcuts
 		switch (event.key) {
 			case '+':
 			case '=':
@@ -226,6 +284,15 @@
 				break;
 		}
 	}
+
+	// Get cursor style from active tool
+	$effect(() => {
+		if (!toolsLoaded) return;
+		const tool = toolRegistry.getTool(canvasStore.activeTool);
+		if (tool && canvasElement) {
+			canvasElement.style.cursor = tool.config.cursor;
+		}
+	});
 </script>
 
 <canvas
@@ -244,13 +311,12 @@
 		display: block;
 		image-rendering: pixelated;
 		image-rendering: crisp-edges;
-		cursor: crosshair;
 		box-shadow: var(--shadow-lg);
 		border: 2px solid var(--color-border);
 		background: repeating-conic-gradient(#2a2a2a 0% 25%, #1a1a1a 0% 50%) 50% / 16px 16px;
 	}
 
 	.pixel-canvas:active {
-		cursor: crosshair;
+		cursor: inherit; /* Use tool-specific cursor */
 	}
 </style>
