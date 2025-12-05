@@ -260,54 +260,6 @@ function createCanvasStore() {
 		activeTool = tool;
 	}
 
-	/**
-	 * Flood fill algorithm - fills a contiguous area with the target color
-	 * @param startX - Starting X coordinate
-	 * @param startY - Starting Y coordinate
-	 * @param fillColorIndex - Color index to fill with
-	 */
-	function fillArea(startX: number, startY: number, fillColorIndex: number) {
-		if (!activeLayer || activeLayer.locked) return;
-		if (startX < 0 || startX >= width || startY < 0 || startY >= height) return;
-
-		const layer = layers.find((l) => l.id === activeLayerId);
-		if (!layer) return;
-
-		// Get the starting pixel color
-		const targetColorIndex = layer.pixels[startY][startX];
-
-		// If the fill color is the same as the target color, no need to fill
-		if (targetColorIndex === fillColorIndex) return;
-
-		// Use a stack-based flood fill algorithm to avoid recursion depth issues
-		const stack: { x: number; y: number }[] = [{ x: startX, y: startY }];
-		const visited = new Set<string>();
-
-		while (stack.length > 0) {
-			const { x, y } = stack.pop()!;
-
-			// Skip if out of bounds
-			if (x < 0 || x >= width || y < 0 || y >= height) continue;
-
-			// Skip if already visited
-			const key = `${x},${y}`;
-			if (visited.has(key)) continue;
-			visited.add(key);
-
-			// Skip if this pixel is not the target color
-			if (layer.pixels[y][x] !== targetColorIndex) continue;
-
-			// Fill this pixel
-			layer.pixels[y][x] = fillColorIndex;
-
-			// Add neighbors to stack (4-way connectivity)
-			stack.push({ x: x + 1, y });
-			stack.push({ x: x - 1, y });
-			stack.push({ x, y: y + 1 });
-			stack.push({ x, y: y - 1 });
-		}
-	}
-
 	return {
 		// State (read-only getters)
 		get width() {
@@ -360,8 +312,7 @@ function createCanvasStore() {
 		moveLayerDown,
 		setLayerOpacity,
 		reorderLayers,
-		setActiveTool,
-		fillArea
+		setActiveTool
 	};
 }
 
