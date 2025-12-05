@@ -31,7 +31,7 @@ class RectangleTool extends BaseTool {
 		order: 10,
 
 		// Extended configuration
-		version: '1.0.0',
+		version: '1.1.0',
 		author: 'inline.px',
 		license: 'MIT',
 		tags: ['shape', 'rectangle', 'drawing', 'geometry'],
@@ -176,71 +176,64 @@ class RectangleTool extends BaseTool {
 				}
 			}
 		} else {
-			// Draw outline rectangle with line width
-			this.drawThickLine(x1, y1, x2, y1, lineWidth, colorIndex, toolContext, isPreview); // Top
-			this.drawThickLine(x2, y1, x2, y2, lineWidth, colorIndex, toolContext, isPreview); // Right
-			this.drawThickLine(x2, y2, x1, y2, lineWidth, colorIndex, toolContext, isPreview); // Bottom
-			this.drawThickLine(x1, y2, x1, y1, lineWidth, colorIndex, toolContext, isPreview); // Left
-		}
+			// Draw outline rectangle with proper line width
+			// Draw as multiple nested rectangles
+			for (let i = 0; i < lineWidth; i++) {
+				const innerX1 = x1 + i;
+				const innerY1 = y1 + i;
+				const innerX2 = x2 - i;
+				const innerY2 = y2 - i;
 
-		requestRedraw();
-	}
+				// Stop if rectangle becomes too small
+				if (innerX1 > innerX2 || innerY1 > innerY2) break;
 
-	/**
-	 * Draw a thick line (for outlines)
-	 */
-	private drawThickLine(
-		x1: number,
-		y1: number,
-		x2: number,
-		y2: number,
-		width: number,
-		colorIndex: number,
-		toolContext: ToolContext,
-		isPreview: boolean
-	): void {
-		const { setPixel, getPixel, canvas } = toolContext;
-
-		// Use Bresenham's line algorithm
-		const dx = Math.abs(x2 - x1);
-		const dy = Math.abs(y2 - y1);
-		const sx = x1 < x2 ? 1 : -1;
-		const sy = y1 < y2 ? 1 : -1;
-		let err = dx - dy;
-
-		let x = x1;
-		let y = y1;
-
-		while (true) {
-			// Draw pixel with width
-			const radius = Math.floor(width / 2);
-			for (let dy = -radius; dy < width - radius; dy++) {
-				for (let dx = -radius; dx < width - radius; dx++) {
-					const px = x + dx;
-					const py = y + dy;
-
-					if (px >= 0 && px < canvas.width && py >= 0 && py < canvas.height) {
+				// Top horizontal line
+				for (let px = innerX1; px <= innerX2; px++) {
+					if (px >= 0 && px < canvas.width && innerY1 >= 0 && innerY1 < canvas.height) {
 						if (isPreview) {
-							// Store original color for preview
-							this.previewPixels.push({ x: px, y: py, originalColor: getPixel(px, py) });
+							this.previewPixels.push({ x: px, y: innerY1, originalColor: getPixel(px, innerY1) });
 						}
-						setPixel(px, py, colorIndex);
+						setPixel(px, innerY1, colorIndex);
+					}
+				}
+
+				// Bottom horizontal line
+				if (innerY2 !== innerY1) {
+					for (let px = innerX1; px <= innerX2; px++) {
+						if (px >= 0 && px < canvas.width && innerY2 >= 0 && innerY2 < canvas.height) {
+							if (isPreview) {
+								this.previewPixels.push({ x: px, y: innerY2, originalColor: getPixel(px, innerY2) });
+							}
+							setPixel(px, innerY2, colorIndex);
+						}
+					}
+				}
+
+				// Left vertical line
+				for (let py = innerY1; py <= innerY2; py++) {
+					if (innerX1 >= 0 && innerX1 < canvas.width && py >= 0 && py < canvas.height) {
+						if (isPreview) {
+							this.previewPixels.push({ x: innerX1, y: py, originalColor: getPixel(innerX1, py) });
+						}
+						setPixel(innerX1, py, colorIndex);
+					}
+				}
+
+				// Right vertical line
+				if (innerX2 !== innerX1) {
+					for (let py = innerY1; py <= innerY2; py++) {
+						if (innerX2 >= 0 && innerX2 < canvas.width && py >= 0 && py < canvas.height) {
+							if (isPreview) {
+								this.previewPixels.push({ x: innerX2, y: py, originalColor: getPixel(innerX2, py) });
+							}
+							setPixel(innerX2, py, colorIndex);
+						}
 					}
 				}
 			}
-
-			if (x === x2 && y === y2) break;
-
-			const e2 = 2 * err;
-			if (e2 > -dy) {
-				err -= dy;
-				x += sx;
-			}
-			if (e2 < dx) {
-				err += dx;
-				y += sy;
-			}
 		}
+
+		requestRedraw();
 	}
 
 	/**

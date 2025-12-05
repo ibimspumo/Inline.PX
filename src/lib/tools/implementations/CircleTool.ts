@@ -31,7 +31,7 @@ class CircleTool extends BaseTool {
 		order: 11,
 
 		// Extended configuration
-		version: '1.0.0',
+		version: '1.1.0',
 		author: 'inline.px',
 		license: 'MIT',
 		tags: ['shape', 'circle', 'ellipse', 'drawing', 'geometry'],
@@ -130,7 +130,7 @@ class CircleTool extends BaseTool {
 		if (this.startX === null || this.startY === null) return;
 
 		const { x, y, button } = mouseContext;
-		const { colors, setPixel, getPixel, requestRedraw, canvas, state } = toolContext;
+		const { colors, requestRedraw, state } = toolContext;
 
 		// Use primary color for left click, secondary for right click
 		const colorIndex = button === 2 ? colors.secondaryColorIndex : colors.primaryColorIndex;
@@ -141,10 +141,10 @@ class CircleTool extends BaseTool {
 		const perfectPixels = state.getToolOption<boolean>(this.config.id, 'perfectPixels') ?? false;
 
 		// Calculate center and radii
-		const cx = (this.startX + x) / 2;
-		const cy = (this.startY + y) / 2;
-		let rx = Math.abs(x - this.startX) / 2;
-		let ry = Math.abs(y - this.startY) / 2;
+		const cx = Math.round((this.startX + x) / 2);
+		const cy = Math.round((this.startY + y) / 2);
+		let rx = Math.round(Math.abs(x - this.startX) / 2);
+		let ry = Math.round(Math.abs(y - this.startY) / 2);
 
 		// Apply perfect circle constraint
 		if (perfectPixels) {
@@ -157,14 +157,19 @@ class CircleTool extends BaseTool {
 		if (filled) {
 			this.drawFilledEllipse(cx, cy, rx, ry, colorIndex, toolContext, isPreview);
 		} else {
-			this.drawEllipseOutline(cx, cy, rx, ry, lineWidth, colorIndex, toolContext, isPreview);
+			// For outline, draw multiple filled ellipses with decreasing radii
+			for (let i = 0; i < lineWidth; i++) {
+				const outerRx = Math.max(1, rx - i);
+				const outerRy = Math.max(1, ry - i);
+				this.drawEllipseOutlineLayer(cx, cy, outerRx, outerRy, colorIndex, toolContext, isPreview);
+			}
 		}
 
 		requestRedraw();
 	}
 
 	/**
-	 * Draw a filled ellipse using midpoint algorithm
+	 * Draw a filled ellipse using scan-line algorithm
 	 */
 	private drawFilledEllipse(
 		cx: number,
@@ -177,142 +182,120 @@ class CircleTool extends BaseTool {
 	): void {
 		const { setPixel, getPixel, canvas } = toolContext;
 
-		// Round center coordinates
-		const centerX = Math.round(cx);
-		const centerY = Math.round(cy);
+		// Use ellipse equation: (x-cx)²/rx² + (y-cy)²/ry² <= 1
+		for (let dy = -ry; dy <= ry; dy++) {
+			const py = cy + dy;
+			if (py < 0 || py >= canvas.height) continue;
 
-		// Draw filled ellipse by scanning horizontal lines
-		const radiusX = Math.round(rx);
-		const radiusY = Math.round(ry);
+			// Calculate x extent at this y
+			const term = 1 - (dy * dy) / (ry * ry);
+			if (term < 0) continue;
 
-		for (let dy = -radiusY; dy <= radiusY; dy++) {
-			// Calculate width at this height
-			const width = Math.sqrt(
-				Math.max(0, radiusX * radiusX * (1 - (dy * dy) / (radiusY * radiusY)))
-			);
+			const dx = Math.floor(rx * Math.sqrt(term));
 
-			const x1 = Math.round(centerX - width);
-			const x2 = Math.round(centerX + width);
-			const py = centerY + dy;
-
-			if (py >= 0 && py < canvas.height) {
-				for (let px = x1; px <= x2; px++) {
-					if (px >= 0 && px < canvas.width) {
-						if (isPreview) {
-							this.previewPixels.push({ x: px, y: py, originalColor: getPixel(px, py) });
-						}
-						setPixel(px, py, colorIndex);
+			for (let x = cx - dx; x <= cx + dx; x++) {
+				if (x >= 0 && x < canvas.width) {
+					if (isPreview) {
+						this.previewPixels.push({ x, y: py, originalColor: getPixel(x, py) });
 					}
+					setPixel(x, py, colorIndex);
 				}
 			}
 		}
 	}
 
 	/**
-	 * Draw an ellipse outline using midpoint algorithm
+	 * Draw a single outline layer of an ellipse
 	 */
-	private drawEllipseOutline(
+	private drawEllipseOutlineLayer(
 		cx: number,
 		cy: number,
 		rx: number,
 		ry: number,
-		lineWidth: number,
 		colorIndex: number,
 		toolContext: ToolContext,
 		isPreview: boolean
 	): void {
 		const { setPixel, getPixel, canvas } = toolContext;
 
-		// Round center coordinates
-		const centerX = Math.round(cx);
-		const centerY = Math.round(cy);
-		const radiusX = Math.round(rx);
-		const radiusY = Math.round(ry);
+		if (rx <= 0 || ry <= 0) return;
 
-		// Midpoint ellipse algorithm
-		let x = 0;
-		let y = radiusY;
+		// Use Bresenham-like algorithm for ellipse
+		// We'll plot points that satisfy the ellipse equation within a tolerance
 
-		// Region 1
-		let d1 = radiusY * radiusY - radiusX * radiusX * radiusY + 0.25 * radiusX * radiusX;
-		let dx = 2 * radiusY * radiusY * x;
-		let dy = 2 * radiusX * radiusX * y;
+		const pixels = new Set<string>();
 
-		while (dx < dy) {
-			this.drawEllipsePoint(centerX, centerY, x, y, lineWidth, colorIndex, toolContext, isPreview);
+		// Scan through all possible points in the bounding box
+		for (let dy = -ry; dy <= ry; dy++) {
+			const py = cy + dy;
+			if (py < 0 || py >= canvas.height) continue;
 
-			if (d1 < 0) {
-				x++;
-				dx += 2 * radiusY * radiusY;
-				d1 += dx + radiusY * radiusY;
-			} else {
-				x++;
-				y--;
-				dx += 2 * radiusY * radiusY;
-				dy -= 2 * radiusX * radiusX;
-				d1 += dx - dy + radiusY * radiusY;
-			}
-		}
+			// For this y, find the x positions on the ellipse edge
+			const term = 1 - (dy * dy) / (ry * ry);
+			if (term < 0) continue;
 
-		// Region 2
-		let d2 =
-			radiusY * radiusY * (x + 0.5) * (x + 0.5) +
-			radiusX * radiusX * (y - 1) * (y - 1) -
-			radiusX * radiusX * radiusY * radiusY;
+			const dx = Math.round(rx * Math.sqrt(term));
 
-		while (y >= 0) {
-			this.drawEllipsePoint(centerX, centerY, x, y, lineWidth, colorIndex, toolContext, isPreview);
+			// Draw left and right edge pixels
+			const leftX = cx - dx;
+			const rightX = cx + dx;
 
-			if (d2 > 0) {
-				y--;
-				dy -= 2 * radiusX * radiusX;
-				d2 += radiusX * radiusX - dy;
-			} else {
-				y--;
-				x++;
-				dx += 2 * radiusY * radiusY;
-				dy -= 2 * radiusX * radiusX;
-				d2 += dx - dy + radiusX * radiusX;
-			}
-		}
-	}
-
-	/**
-	 * Draw a single point of the ellipse with line width
-	 */
-	private drawEllipsePoint(
-		cx: number,
-		cy: number,
-		x: number,
-		y: number,
-		lineWidth: number,
-		colorIndex: number,
-		toolContext: ToolContext,
-		isPreview: boolean
-	): void {
-		const { setPixel, getPixel, canvas } = toolContext;
-
-		// Draw 4 symmetric points with line width
-		const points = [
-			{ x: cx + x, y: cy + y },
-			{ x: cx - x, y: cy + y },
-			{ x: cx + x, y: cy - y },
-			{ x: cx - x, y: cy - y }
-		];
-
-		for (const point of points) {
-			const radius = Math.floor(lineWidth / 2);
-			for (let dy = -radius; dy < lineWidth - radius; dy++) {
-				for (let dx = -radius; dx < lineWidth - radius; dx++) {
-					const px = point.x + dx;
-					const py = point.y + dy;
-
-					if (px >= 0 && px < canvas.width && py >= 0 && py < canvas.height) {
-						if (isPreview) {
-							this.previewPixels.push({ x: px, y: py, originalColor: getPixel(px, py) });
-						}
-						setPixel(px, py, colorIndex);
+			if (leftX >= 0 && leftX < canvas.width) {
+				const key = `${leftX},${py}`;
+				if (!pixels.has(key)) {
+					pixels.add(key);
+					if (isPreview) {
+						this.previewPixels.push({ x: leftX, y: py, originalColor: getPixel(leftX, py) });
 					}
+					setPixel(leftX, py, colorIndex);
+				}
+			}
+
+			if (rightX >= 0 && rightX < canvas.width && rightX !== leftX) {
+				const key = `${rightX},${py}`;
+				if (!pixels.has(key)) {
+					pixels.add(key);
+					if (isPreview) {
+						this.previewPixels.push({ x: rightX, y: py, originalColor: getPixel(rightX, py) });
+					}
+					setPixel(rightX, py, colorIndex);
+				}
+			}
+		}
+
+		// Now scan horizontally to fill gaps
+		for (let dx = -rx; dx <= rx; dx++) {
+			const px = cx + dx;
+			if (px < 0 || px >= canvas.width) continue;
+
+			const term = 1 - (dx * dx) / (rx * rx);
+			if (term < 0) continue;
+
+			const dy = Math.round(ry * Math.sqrt(term));
+
+			// Draw top and bottom edge pixels
+			const topY = cy - dy;
+			const bottomY = cy + dy;
+
+			if (topY >= 0 && topY < canvas.height) {
+				const key = `${px},${topY}`;
+				if (!pixels.has(key)) {
+					pixels.add(key);
+					if (isPreview) {
+						this.previewPixels.push({ x: px, y: topY, originalColor: getPixel(px, topY) });
+					}
+					setPixel(px, topY, colorIndex);
+				}
+			}
+
+			if (bottomY >= 0 && bottomY < canvas.height && bottomY !== topY) {
+				const key = `${px},${bottomY}`;
+				if (!pixels.has(key)) {
+					pixels.add(key);
+					if (isPreview) {
+						this.previewPixels.push({ x: px, y: bottomY, originalColor: getPixel(px, bottomY) });
+					}
+					setPixel(px, bottomY, colorIndex);
 				}
 			}
 		}
