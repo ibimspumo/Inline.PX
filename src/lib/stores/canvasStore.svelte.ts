@@ -63,9 +63,15 @@ function createCanvasStore() {
 		if (x < 0 || x >= width || y < 0 || y >= height) return;
 
 		// Update pixel in active layer
-		const layer = layers.find((l) => l.id === activeLayerId);
-		if (layer) {
-			layer.pixels[y][x] = colorIndex;
+		const layerIndex = layers.findIndex((l) => l.id === activeLayerId);
+		if (layerIndex !== -1) {
+			// Create a shallow copy of the row to trigger reactivity
+			const newRow = [...layers[layerIndex].pixels[y]];
+			newRow[x] = colorIndex;
+			layers[layerIndex].pixels[y] = newRow;
+
+			// Trigger reactivity by reassigning layers array
+			layers = [...layers];
 		}
 	}
 
