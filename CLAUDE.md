@@ -90,7 +90,8 @@ tools/
 
 **Key Features**:
 
-- **Auto-registration**: Tools in `implementations/` are automatically discovered and loaded
+- **Auto-registration**: Tools in `implementations/` are automatically discovered and loaded via Vite glob imports
+- **Singleton loading**: `loadAllTools()` can be called multiple times safely - uses internal loading state to prevent duplicate registration
 - **Self-contained**: Each tool defines its own config, behavior, and validation
 - **Dynamic UI**: Toolbar auto-generates from registered tools, grouped by category
 - **Keyboard shortcuts**: Tools define shortcuts that work globally
@@ -102,6 +103,13 @@ tools/
 2. Extend `BaseTool` and implement methods
 3. Export singleton: `export default new MyTool()`
 4. Tool automatically appears in toolbar on next load!
+
+**Tool Loading**:
+
+- `loadAllTools()` uses a singleton pattern with internal flags (`isLoading`, `isLoaded`, `loadingPromise`)
+- Safe to call multiple times from different components - only loads once
+- If called while loading, returns the existing promise
+- If already loaded, returns immediately without re-registering
 
 **Tool Lifecycle**:
 

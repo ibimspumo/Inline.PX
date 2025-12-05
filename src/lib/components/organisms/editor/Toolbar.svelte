@@ -36,10 +36,8 @@
 	const categoryOrder: ToolCategory[] = ['view', 'draw', 'edit', 'shape', 'select'];
 
 	onMount(async () => {
-		// Load tools if not already loaded
-		if (toolRegistry.count === 0) {
-			await loadAllTools();
-		}
+		// Load tools (singleton pattern ensures only one load)
+		await loadAllTools();
 
 		// Get tools grouped by category
 		toolsByCategory = toolRegistry.getToolsGroupedByCategory();

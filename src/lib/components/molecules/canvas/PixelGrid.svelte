@@ -40,7 +40,6 @@
 		// This effect runs whenever canvas state changes
 		const { width, height, layers, zoom } = canvasStore;
 		if (renderer && toolsLoaded) {
-			console.log('$effect: Re-rendering canvas', { width, height, layerCount: layers.length });
 			renderer.requestRedraw();
 			renderer.render(width, height, layers, zoom);
 		}
