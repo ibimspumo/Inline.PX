@@ -35,7 +35,13 @@ export interface ToolState {
 export class ToolStateManager {
 	private states = $state(new Map<string, ToolState>());
 	private storageKey = 'inline-px:tool-states';
+	private preferencesKey = 'inline-px:tool-preferences';
 	private isInitialized = false;
+
+	// Favorites and recent tools tracking
+	private favorites = $state<Set<string>>(new Set());
+	private recentTools = $state<string[]>([]);
+	private maxRecentTools = 5;
 
 	/**
 	 * Initialize the state manager (call once on app startup)
@@ -43,6 +49,7 @@ export class ToolStateManager {
 	initialize(): void {
 		if (this.isInitialized) return;
 		this.loadFromStorage();
+		this.loadPreferences();
 		this.isInitialized = true;
 	}
 
@@ -124,6 +131,83 @@ export class ToolStateManager {
 		state.useCount = (state.useCount || 0) + 1;
 		state.lastUsed = new Date();
 		this.setToolState(toolId, state);
+
+		// Update recent tools
+		this.addToRecentTools(toolId);
+	}
+
+	/**
+	 * Add tool to favorites
+	 */
+	addFavorite(toolId: string): void {
+		this.favorites.add(toolId);
+		this.persistPreferences();
+	}
+
+	/**
+	 * Remove tool from favorites
+	 */
+	removeFavorite(toolId: string): void {
+		this.favorites.delete(toolId);
+		this.persistPreferences();
+	}
+
+	/**
+	 * Toggle favorite status
+	 */
+	toggleFavorite(toolId: string): void {
+		if (this.favorites.has(toolId)) {
+			this.removeFavorite(toolId);
+		} else {
+			this.addFavorite(toolId);
+		}
+	}
+
+	/**
+	 * Check if tool is favorited
+	 */
+	isFavorite(toolId: string): boolean {
+		return this.favorites.has(toolId);
+	}
+
+	/**
+	 * Get all favorite tool IDs
+	 */
+	getFavorites(): string[] {
+		return Array.from(this.favorites);
+	}
+
+	/**
+	 * Add tool to recent tools list
+	 */
+	private addToRecentTools(toolId: string): void {
+		// Remove if already exists
+		this.recentTools = this.recentTools.filter(id => id !== toolId);
+
+		// Add to front
+		this.recentTools.unshift(toolId);
+
+		// Limit size
+		if (this.recentTools.length > this.maxRecentTools) {
+			this.recentTools = this.recentTools.slice(0, this.maxRecentTools);
+		}
+
+		this.persistPreferences();
+	}
+
+	/**
+	 * Get recent tools list
+	 */
+	getRecentTools(): string[] {
+		return [...this.recentTools];
+	}
+
+	/**
+	 * Clear recent tools
+	 */
+	clearRecentTools(): void {
+		this.recentTools = [];
+		this.persistPreferences();
 	}
 
 	/**
@@ -216,9 +300,50 @@ export class ToolStateManager {
 	clearStorage(): void {
 		try {
 			localStorage.removeItem(this.storageKey);
+			localStorage.removeItem(this.preferencesKey);
 			this.states.clear();
+			this.favorites.clear();
+			this.recentTools = [];
 		} catch (error) {
 			console.error('Failed to clear tool state storage:', error);
+		}
+	}
+
+	/**
+	 * Persist preferences (favorites, recent tools) to localStorage
+	 */
+	private persistPreferences(): void {
+		try {
+			const preferences = {
+				favorites: Array.from(this.favorites),
+				recentTools: this.recentTools
+			};
+
+			localStorage.setItem(this.preferencesKey, JSON.stringify(preferences));
+		} catch (error) {
+			console.error('Failed to persist tool preferences:', error);
+		}
+	}
+
+	/**
+	 * Load preferences from localStorage
+	 */
+	private loadPreferences(): void {
+		try {
+			const stored = localStorage.getItem(this.preferencesKey);
+			if (!stored) return;
+
+			const parsed = JSON.parse(stored);
+
+			if (parsed.favorites) {
+				this.favorites = new Set(parsed.favorites);
+			}
+
+			if (parsed.recentTools) {
+				this.recentTools = parsed.recentTools;
+			}
+		} catch (error) {
+			console.error('Failed to load tool preferences:', error);
 		}
 	}
 }

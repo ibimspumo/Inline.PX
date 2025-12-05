@@ -29,7 +29,8 @@ export type IconName =
 	| 'Square'
 	| 'Circle'
 	| 'Lasso'
-	| 'Minus';
+	| 'Minus'
+	| 'Star';
 
 /**
  * Tool configuration

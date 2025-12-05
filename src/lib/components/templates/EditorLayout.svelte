@@ -25,17 +25,25 @@
 <script lang="ts">
 	import MenuBar from '$lib/components/organisms/editor/MenuBar.svelte';
 	import Toolbar from '$lib/components/organisms/editor/Toolbar.svelte';
+	import ToolbarEnhanced from '$lib/components/organisms/editor/ToolbarEnhanced.svelte';
 	import Canvas from '$lib/components/organisms/editor/Canvas.svelte';
 	import ToolPropertiesPanel from '$lib/components/organisms/panels/ToolPropertiesPanel.svelte';
 	import ColorPanel from '$lib/components/organisms/panels/ColorPanel.svelte';
 	import LayersPanel from '$lib/components/organisms/panels/LayersPanel.svelte';
+
+	// Toggle between old and new toolbar for testing
+	const useEnhancedToolbar = true;
 </script>
 
 <div class="editor-layout">
 	<MenuBar />
 
 	<div class="editor-main">
-		<Toolbar />
+		{#if useEnhancedToolbar}
+			<ToolbarEnhanced />
+		{:else}
+			<Toolbar />
+		{/if}
 
 		<div class="editor-content">
 			<Canvas />

@@ -19,7 +19,8 @@ import {
 	Square,
 	Circle,
 	Lasso,
-	Minus
+	Minus,
+	Star
 } from '@lucide/svelte';
 
 /**
@@ -36,7 +37,8 @@ const iconMap: Record<IconName, Component> = {
 	Square,
 	Circle,
 	Lasso,
-	Minus
+	Minus,
+	Star
 };
 
 /**
