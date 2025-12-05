@@ -8,14 +8,13 @@
 import { BaseTool } from '../base/BaseTool';
 import type { ToolConfig } from '../base/ToolConfig';
 import type { ToolContext, MouseEventContext } from '../base/ToolContext';
-import { PaintBucket } from 'lucide-svelte';
 
 class BucketTool extends BaseTool {
 	public readonly config: ToolConfig = {
 		id: 'bucket',
 		name: 'Paint Bucket',
 		description: 'Fill contiguous area with color',
-		icon: PaintBucket,
+		iconName: 'PaintBucket',
 		category: 'draw',
 		shortcut: 'G',
 		cursor: 'crosshair',

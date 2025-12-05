@@ -8,14 +8,13 @@
 import { BaseTool } from '../base/BaseTool';
 import type { ToolConfig } from '../base/ToolConfig';
 import type { ToolContext, MouseEventContext } from '../base/ToolContext';
-import { Eraser } from 'lucide-svelte';
 
 class EraserTool extends BaseTool {
 	public readonly config: ToolConfig = {
 		id: 'eraser',
 		name: 'Eraser',
 		description: 'Erase pixels to transparent',
-		icon: Eraser,
+		iconName: 'Eraser',
 		category: 'draw',
 		shortcut: 'E',
 		cursor: 'crosshair',

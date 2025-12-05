@@ -121,7 +121,7 @@ class ToolRegistry {
 			id: tool.config.id,
 			name: tool.config.name,
 			description: tool.config.description,
-			icon: tool.config.icon,
+			iconName: tool.config.iconName,
 			category: tool.config.category,
 			shortcut: tool.config.shortcut,
 			order: tool.config.order

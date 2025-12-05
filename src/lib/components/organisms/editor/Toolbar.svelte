@@ -26,6 +26,7 @@
 	import IconButton from '$lib/components/atoms/buttons/IconButton.svelte';
 	import Divider from '$lib/components/atoms/display/Divider.svelte';
 	import { toolRegistry, loadAllTools } from '$lib/tools';
+	import { resolveIcon } from '$lib/tools';
 	import type { ToolCategory } from '$lib/tools';
 
 	let toolsLoaded = $state(false);
@@ -82,7 +83,7 @@
 			<div class="toolbar-section">
 				{#each toolsByCategory.get(category) || [] as tool}
 					<IconButton
-						icon={tool.config.icon}
+						icon={resolveIcon(tool.config.iconName)}
 						title={getToolTooltip(tool)}
 						active={canvasStore.activeTool === tool.config.id}
 						onclick={() => selectTool(tool.config.id)}

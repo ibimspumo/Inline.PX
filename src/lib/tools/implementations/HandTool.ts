@@ -7,14 +7,13 @@
 
 import { BaseTool } from '../base/BaseTool';
 import type { ToolConfig } from '../base/ToolConfig';
-import { Hand } from 'lucide-svelte';
 
 class HandTool extends BaseTool {
 	public readonly config: ToolConfig = {
 		id: 'hand',
 		name: 'Hand',
 		description: 'Pan the canvas view',
-		icon: Hand,
+		iconName: 'Hand',
 		category: 'view',
 		shortcut: 'H',
 		cursor: 'grab',

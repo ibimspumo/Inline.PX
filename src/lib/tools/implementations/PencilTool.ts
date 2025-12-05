@@ -8,14 +8,13 @@
 import { BaseTool } from '../base/BaseTool';
 import type { ToolConfig } from '../base/ToolConfig';
 import type { ToolContext, MouseEventContext } from '../base/ToolContext';
-import { Pencil } from 'lucide-svelte';
 
 class PencilTool extends BaseTool {
 	public readonly config: ToolConfig = {
 		id: 'pencil',
 		name: 'Pencil',
 		description: 'Draw freehand with primary or secondary color',
-		icon: Pencil,
+		iconName: 'Pencil',
 		category: 'draw',
 		shortcut: 'B',
 		cursor: 'crosshair',

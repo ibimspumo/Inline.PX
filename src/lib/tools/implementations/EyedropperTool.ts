@@ -8,14 +8,13 @@
 import { BaseTool } from '../base/BaseTool';
 import type { ToolConfig } from '../base/ToolConfig';
 import type { ToolContext, MouseEventContext } from '../base/ToolContext';
-import { Pipette } from 'lucide-svelte';
 
 class EyedropperTool extends BaseTool {
 	public readonly config: ToolConfig = {
 		id: 'eyedropper',
 		name: 'Eyedropper',
 		description: 'Sample color from canvas',
-		icon: Pipette,
+		iconName: 'Pipette',
 		category: 'draw',
 		shortcut: 'I',
 		cursor: 'crosshair',

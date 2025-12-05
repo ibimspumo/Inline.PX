@@ -5,8 +5,6 @@
  * Used by the ToolRegistry and Toolbar for registration and display.
  */
 
-import type { Component } from 'svelte';
-
 /**
  * Tool category for grouping in toolbar
  */
@@ -16,6 +14,21 @@ export type ToolCategory = 'draw' | 'edit' | 'select' | 'view' | 'shape';
  * Tool cursor type
  */
 export type ToolCursor = 'crosshair' | 'pointer' | 'grab' | 'grabbing' | 'zoom-in' | 'zoom-out';
+
+/**
+ * Lucide icon name (without import)
+ */
+export type IconName =
+	| 'Pencil'
+	| 'Eraser'
+	| 'PaintBucket'
+	| 'Pipette'
+	| 'Move'
+	| 'Hand'
+	| 'ZoomIn'
+	| 'Square'
+	| 'Circle'
+	| 'Lasso';
 
 /**
  * Tool configuration
@@ -30,8 +43,8 @@ export interface ToolConfig {
 	/** Tool description */
 	description: string;
 
-	/** Lucide icon component */
-	icon: Component;
+	/** Lucide icon name */
+	iconName: IconName;
 
 	/** Tool category for grouping */
 	category: ToolCategory;
@@ -59,7 +72,7 @@ export interface ToolMetadata {
 	id: string;
 	name: string;
 	description: string;
-	icon: Component;
+	iconName: IconName;
 	category: ToolCategory;
 	shortcut?: string;
 	order: number;

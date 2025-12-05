@@ -7,14 +7,13 @@
 
 import { BaseTool } from '../base/BaseTool';
 import type { ToolConfig } from '../base/ToolConfig';
-import { Move } from 'lucide-svelte';
 
 class MoveTool extends BaseTool {
 	public readonly config: ToolConfig = {
 		id: 'move',
 		name: 'Move',
 		description: 'Move selected content or layers',
-		icon: Move,
+		iconName: 'Move',
 		category: 'edit',
 		shortcut: 'V',
 		cursor: 'grab',
