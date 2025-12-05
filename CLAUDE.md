@@ -273,6 +273,92 @@ Every Svelte component must include:
 - **Always** add JSDoc comments to new functions
 - **Always** update existing comments when changing functionality
 
+## Git Workflow & Branching Strategy
+
+**CRITICAL**: This project uses a **feature-branch workflow** for all development.
+
+### Branch Structure
+
+```
+main (production-ready code)
+└── svelte-migration (development base branch)
+    ├── feature/tool-system
+    ├── feature/undo-redo
+    ├── feature/keyboard-shortcuts
+    └── fix/layer-reordering-bug
+```
+
+### Workflow Rules
+
+1. **Never commit directly to `svelte-migration`**
+   - All new features must be developed in separate feature branches
+
+2. **Creating a Feature Branch**
+   ```bash
+   # Make sure you're on svelte-migration
+   git checkout svelte-migration
+   git pull origin svelte-migration
+
+   # Create new feature branch
+   git checkout -b feature/your-feature-name
+   # or for bug fixes
+   git checkout -b fix/bug-description
+   ```
+
+3. **Development in Feature Branch**
+   - Make **micro commits** for every logical change
+   - Commit frequently during development
+   - Keep commits atomic and focused
+   - Each commit must leave the codebase in a working state
+
+4. **Merging Back to svelte-migration**
+   - Only merge when the feature is **complete and tested**
+   - Merge via Pull Request or direct merge:
+   ```bash
+   git checkout svelte-migration
+   git merge feature/your-feature-name
+   git push origin svelte-migration
+   ```
+
+5. **Branch Naming Convention**
+   - `feature/` - New features or enhancements
+   - `fix/` - Bug fixes
+   - `refactor/` - Code refactoring
+   - `docs/` - Documentation updates
+   - Use kebab-case: `feature/layer-blend-modes`
+
+### When to Create a Feature Branch
+
+**Always create a new branch for:**
+- Adding a new tool (pencil, eraser, bucket, etc.)
+- Implementing a new system (undo/redo, keyboard shortcuts)
+- Adding a new panel or UI component
+- Significant refactoring
+- Bug fixes that require multiple commits
+
+**Example workflow:**
+```bash
+# Starting work on selection tool
+git checkout svelte-migration
+git checkout -b feature/selection-tool
+
+# Make changes and commit
+git add src/lib/components/...
+git commit -m "feat: Add rectangle selection tool component"
+
+# More changes and commits
+git add src/lib/stores/...
+git commit -m "feat: Add selection state to canvas store"
+
+# Feature complete, merge back
+git checkout svelte-migration
+git merge feature/selection-tool
+git push origin svelte-migration
+
+# Optionally delete feature branch
+git branch -d feature/selection-tool
+```
+
 ## Git Commit Guidelines
 
 **IMPORTANT**: After every meaningful code change or group of related changes, create a **micro commit** with a descriptive message.
@@ -305,6 +391,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - **Descriptive messages**: Explain what changed and why
 - **Atomic commits**: Each commit should represent one logical change
 - **Working state**: Every commit should leave the codebase in a working state
+- **Within feature branches**: Commit frequently during development
 
 ### Examples
 
@@ -330,6 +417,153 @@ Added check to disable delete button and prevent accidental
 deletion of the last remaining layer.
 ```
 
+## Important Implementation Notes
+
+### Current State & Limitations
+
+**Tools System**
+- ✅ Pencil tool is fully implemented in `PixelGrid.svelte`
+- ⚠️ Other tools (Eraser, Bucket, Eyedropper, etc.) are **UI-only placeholders**
+- ⚠️ Toolbar state is **local only**, not connected to global state
+- 🔜 Tool system needs global state management and actual implementations
+
+**Canvas Interaction**
+- ✅ Left-click draws with primary color
+- ✅ Right-click draws with secondary color
+- ✅ Click-and-drag drawing works correctly
+- ⚠️ No eraser functionality yet (draws color index 0 as workaround)
+
+**Layer System**
+- ✅ Fully implemented: add, remove, reorder, visibility, lock, duplicate
+- ✅ Drag & drop reordering works
+- ✅ Layer thumbnails with checkerboard backgrounds
+- ✅ Inline name editing with double-click
+- ⚠️ No layer blending modes
+- ⚠️ Layer opacity is stored but not used in rendering
+
+**Color System**
+- ✅ 64-color indexed palette fully functional
+- ✅ Primary/secondary color selection
+- ✅ Keyboard shortcut 'X' to swap colors
+- ✅ Active color mode toggle (primary/secondary)
+- ⚠️ No custom color picker
+- ⚠️ Palette is fixed, cannot be modified by user
+
+**Import/Export**
+- ✅ Base64 export/import works correctly
+- ✅ JSON project file format implemented
+- ✅ PNG export for individual layers
+- ⚠️ Multi-layer PNG export composites all visible layers
+- ⚠️ No GIF export yet
+
+**Missing Features (Prepared Architecture)**
+- ❌ Undo/Redo system (types exist, not implemented)
+- ❌ Selection tools (Rectangle, Lasso)
+- ❌ Transform tools (Move, Rotate, Scale)
+- ❌ Copy/Paste functionality
+- ❌ Keyboard shortcuts (except color swap)
+- ❌ Zoom controls (UI exists, not functional)
+- ❌ Pan/Hand tool
+- ❌ Layer effects (shadows, glow, etc.)
+
+### Critical Code Patterns
+
+**Store Mutations**
+```typescript
+// ❌ WRONG - Direct mutation breaks reactivity
+canvasStore.layers[0].pixels[0][0] = 5;
+
+// ✅ CORRECT - Use store methods
+canvasStore.setPixel(0, 0, 5);
+
+// ❌ WRONG - Mutating derived state
+activeLayer.pixels = newPixels;
+
+// ✅ CORRECT - Get layer, then use store method
+const layer = canvasStore.layers.find(l => l.id === layerId);
+if (layer) {
+  canvasStore.setPixelInLayer(layerId, x, y, colorIndex);
+}
+```
+
+**Component Communication**
+```typescript
+// ✅ CORRECT - Props down, callbacks up
+<LayerItem
+  {layer}
+  onRename={(name) => canvasStore.renameLayer(layer.id, name)}
+/>
+
+// ❌ WRONG - Accessing store inside child component
+// Components should receive data via props and emit events via callbacks
+```
+
+**Reactive Rendering**
+```typescript
+// ✅ CORRECT - Use $effect for reactive re-rendering
+$effect(() => {
+  const { width, height, layers } = canvasStore;
+  renderer.render(width, height, layers);
+});
+
+// ❌ WRONG - Manual re-render calls
+// Svelte handles reactivity, avoid imperative updates
+```
+
+**Canvas Rendering**
+```typescript
+// ✅ CORRECT - Use CanvasRenderer dirty-checking
+renderer.requestRedraw();
+renderer.render(width, height, layers);
+
+// ❌ WRONG - Direct canvas context manipulation
+// Always go through CanvasRenderer for consistency
+```
+
+### Performance Considerations
+
+**Critical Performance Rules**
+1. **Never iterate over all pixels on every render** - Use dirty-checking
+2. **Layer compositing is expensive** - Only re-composite when layers change
+3. **Thumbnail generation is expensive** - Use $derived for caching
+4. **Store getters are cheap** - Svelte's fine-grained reactivity is efficient
+
+**Optimization Checklist**
+- ✅ Canvas rendering uses dirty-checking (`needsRedraw` flag)
+- ✅ Image smoothing is disabled for crisp pixels
+- ✅ Layer thumbnails use $derived for automatic caching
+- ✅ RequestAnimationFrame prepared (not fully utilized yet)
+- ⚠️ Large canvases (128×128) may need additional optimization
+
+### Type System Best Practices
+
+**Always use existing types:**
+```typescript
+import type { Layer, Pixel, Tool } from '$lib/types/canvas.types';
+import type { ProjectSize } from '$lib/types/project.types';
+
+// ✅ CORRECT - Use defined types
+const layer: Layer = { ... };
+const tool: Tool = 'pencil';
+
+// ❌ WRONG - Inline types or any
+const layer: any = { ... };
+const tool = 'pencil'; // Missing type annotation
+```
+
+**Props Interface Pattern:**
+```typescript
+// ✅ CORRECT - Named interface with JSDoc
+interface Props {
+  /** Layer to display */
+  layer: Layer;
+  /** Whether layer is active */
+  isActive: boolean;
+}
+
+let { layer, isActive }: Props = $props();
+```
+
 ## Project Structure Notes
 
 - **No test files**: Testing setup not yet implemented
@@ -337,6 +571,8 @@ deletion of the last remaining layer.
 - **Static assets**: Place in `static/` directory
 - **Routes**: SvelteKit file-based routing in `src/routes/`
 - **Main entry**: `src/routes/+page.svelte` shows WelcomeScreen or EditorLayout based on project state
+- **Architecture**: Atomic Design pattern (Atoms → Molecules → Organisms → Templates)
+- **Styling**: CSS custom properties for theming, no CSS preprocessor
 
 ## Performance Considerations
 
