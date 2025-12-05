@@ -37,6 +37,10 @@ export interface CanvasContext {
 	activeLayerId: string;
 	/** Current zoom level */
 	zoom: number;
+	/** Pan offset X */
+	panX: number;
+	/** Pan offset Y */
+	panY: number;
 }
 
 /**
@@ -71,4 +75,6 @@ export interface ToolContext {
 	setPrimaryColor: (colorIndex: number) => void;
 	/** Set secondary color index */
 	setSecondaryColor: (colorIndex: number) => void;
+	/** Set pan offset */
+	setPan: (x: number, y: number) => void;
 }

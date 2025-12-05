@@ -109,7 +109,9 @@
 				height: canvasStore.height,
 				layers: canvasStore.layers,
 				activeLayerId: canvasStore.activeLayerId,
-				zoom: canvasStore.zoom
+				zoom: canvasStore.zoom,
+				panX: canvasStore.panX,
+				panY: canvasStore.panY
 			},
 			colors: {
 				primaryColorIndex: colorStore.primaryColorIndex,
@@ -121,7 +123,8 @@
 			getPixel: (x, y, layerId) => canvasStore.getPixel(x, y, layerId),
 			requestRedraw: () => renderCanvas(),
 			setPrimaryColor: (colorIndex) => colorStore.setPrimaryColor(colorIndex),
-			setSecondaryColor: (colorIndex) => colorStore.setSecondaryColor(colorIndex)
+			setSecondaryColor: (colorIndex) => colorStore.setSecondaryColor(colorIndex),
+			setPan: (x, y) => canvasStore.setPan(x, y)
 		};
 	}
 
