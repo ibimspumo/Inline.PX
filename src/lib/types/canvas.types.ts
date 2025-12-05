@@ -53,8 +53,4 @@ export type Tool =
 	| 'bucket'
 	| 'eyedropper'
 	| 'move'
-	| 'hand'
-	| 'zoom'
-	| 'rectangle'
-	| 'ellipse'
-	| 'select';
+	| 'hand';
